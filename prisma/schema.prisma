@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  firstname  String
+  lastname   String
+  email      String   @unique @db.VarChar(255)
+  password   String
+  department String? // Nullable
+  role       Role     @default(USER)
+  avatar     String? // เพิ่ม field นี้สำหรับเก็บ URL ของรูปภาพ
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  activities Activity[]
+  news       News[]
+}
+
+enum Role {
+  USER
+  SUPERUSER
+}
+
+model Activity {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique @db.VarChar(255) // Slug เพื่อให้ URL อ่านง่าย
+  content Json? // เปลี่ยนเป็น Json เพื่อเก็บ Quill Delta
+  author      User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId    Int?
+  image       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model News {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique @db.VarChar(255) // Slug เพื่อให้ URL อ่านง่าย
+  description String   @db.VarChar(255)
+  content     Json?
+  author      User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId    Int?
+  image       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AgencyPersonnel {
+  id           String   @id @default(uuid())
+  nameTitle    String
+  firstName    String
+  lastName     String
+  position     String
+  positionName String
+  department   String?
+  image        String // สามารถเป็น null ได้ถ้าไม่มีรูป
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model BannerImage {
+  id           String   @id @default(uuid())
+  title        String // ชื่อหรือหัวข้อของแบนเนอร์
+  imageMobile  String // URL ของรูปแบนเนอร์
+  imageDesktop String // URL ของรูปแบนเนอร์
+  isActive     Boolean  @default(true) // สถานะการแสดงแบนเนอร์
+  sortOrder    Int      @default(1) // ลำดับการแสดงแบนเนอร์
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model BannerVideo {
+  id           String   @id @default(uuid())
+  title        String // ชื่อหรือหัวข้อของแบนเนอร์
+  videoMobile  String // URL ของรูปแบนเนอร์
+  videoDesktop String // URL ของรูปแบนเนอร์
+  isActive     Boolean  @default(true) // สถานะการแสดงแบนเนอร์
+  sortOrder    Int      @default(1) // ลำดับการแสดงแบนเนอร์
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model EService {
+  id        String   @id @default(uuid())
+  title     String
+  image     String
+  linkURL   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
