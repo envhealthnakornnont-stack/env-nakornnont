@@ -63,10 +63,9 @@ const UserSettings = () => {
             valid = false;
         }
         if (newPassword.trim() !== "") {
-            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#]).{6,}$/;
-            if (!passwordRegex.test(newPassword)) {
+            if (newPassword.length < 6) {
                 errors.password =
-                    "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร รวมทั้งตัวพิมพ์เล็ก, ใหญ่, ตัวเลข และอักขระพิเศษ @$!%*?&#";
+                    "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
                 valid = false;
             }
         }

@@ -64,10 +64,9 @@ const UserEdit = () => {
             valid = false;
         }
         if (newPassword.trim() !== "") {
-            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#]).{12,}$/;
-            if (!passwordRegex.test(newPassword)) {
+            if (newPassword.length < 6) {
                 errors.password =
-                    "รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร รวมทั้งตัวพิมพ์เล็ก, ใหญ่, ตัวเลข และอักขระพิเศษ @$!%*?&#";
+                    "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
                 valid = false;
             }
         }

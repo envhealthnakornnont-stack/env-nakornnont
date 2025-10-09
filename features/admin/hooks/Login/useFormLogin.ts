@@ -39,16 +39,6 @@ const useFormLogin = () => {
         } else if (formData.password.length < 6) {
             newErrors.password = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
             isValid = false;
-        } else if (
-            !/(?=.*[A-Z])/.test(formData.password) ||
-            !/(?=.*[a-z])/.test(formData.password) ||
-            !/(?=.*\d)/.test(formData.password) ||
-            !/(?=.*[@$!%*?&#%+])/
-                .test(formData.password)
-        ) {
-            newErrors.password =
-                "รหัสผ่านต้องประกอบด้วยตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และอักขระพิเศษ";
-            isValid = false;
         }
 
         setErrors(newErrors);

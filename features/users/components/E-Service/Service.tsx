@@ -84,7 +84,7 @@ const Service = ({ service }: ServiceProps) => {
                 <Image 
                 src={resolveImagePath(String(service.image))} 
                 alt={`Slide ${index + 1}`} 
-                className="block w-full h-full object-cover" 
+                className="block w-full h-full object-cover rounded-box" 
                 width={300} 
                 height={540} />
               </figure>
