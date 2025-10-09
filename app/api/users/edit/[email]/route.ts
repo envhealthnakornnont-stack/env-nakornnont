@@ -106,11 +106,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ emai
 
         // หากมีการส่ง password เข้ามา ให้ validate ด้วย regex
         if (password && password.trim() !== "") {
-            // Regex ใหม่: ต้องมีอย่างน้อย 12 ตัวอักษร พร้อมด้วยตัวพิมพ์เล็ก, พิมพ์ใหญ่, ตัวเลข และอักขระพิเศษ @$!%*?&#
-            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#]).{12,}$/;
-            if (!passwordRegex.test(password)) {
+            // Regex ใหม่: ต้องมีอย่างน้อย 6 ตัวอักษร
+            if (password.length < 6) {
                 return NextResponse.json(
-                    { error: "รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร และประกอบด้วยตัวพิมพ์เล็ก, ตัวพิมพ์ใหญ่, ตัวเลข และอักขระพิเศษ @$!%*?&#" },
+                    { error: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" },
                     { status: 400 }
                 );
             }
