@@ -1,42 +1,32 @@
+import DepartmentPage from "@/components/Departments/DepartmentPage";
 import EnvironmentalHealthServicesSection from "@/features/users/components/Departments/EnvironmentalHealthServicesSection";
+import { departments } from "@/lib/departments";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "ส่วนบริการอนามัยสิ่งแวดล้อม | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
-  description:
-    "ข้อมูลภารกิจของฝ่ายจัดการมูลฝอยและสิ่งปฏิกูล ครอบคลุมงานรักษาความสะอาด การจัดการขยะ การพัฒนาระบบจัดการมูลฝอย และการจัดการสิ่งปฏิกูลในเขตเทศบาลนครนนทบุรี",
-  keywords: [
-    "ส่วนบริการอนามัยสิ่งแวดล้อม",
-    "งานรักษาความสะอาด",
-    "การจัดการขยะ",
-    "งานลอกท่อ",
-    "งานสิ่งปฏิกูล",
-    "งานสุขาภิบาล",
-    "เทศบาลนครนนทบุรี",
-  ],
-  alternates: {
-    canonical: "/departments/environmental-health-services",
-  },
+export const metadata: Metadata = {
+  title: departments.environmentalHealthServices.seo.title,
+  description: departments.environmentalHealthServices.seo.description,
   openGraph: {
-    title: "ส่วนบริการอนามัยสิ่งแวดล้อม | สำนักสาธารณสุขและสิ่งแวดล้อม",
-    description:
-      "ภารกิจหลักของฝ่ายจัดการมูลฝอยและสิ่งปฏิกูล ครอบคลุมการรักษาความสะอาด การเก็บขนขยะ การบำบัดสิ่งปฏิกูล และงานสุขาภิบาลในพื้นที่เทศบาลนครนนทบุรี",
+    title: departments.environmentalHealthServices.seo.title,
+    description: departments.environmentalHealthServices.seo.description,
     url: "/departments/environmental-health-services",
-    type: "article",
-    siteName: "เว็บไซต์เทศบาลนครนนทบุรี",
+    siteName: "เทศบาลนครนนทบุรี",
     locale: "th_TH",
-    images: ["/logo-nonthaburi.jpg"],
+    type: "article",
+    images: [departments.environmentalHealthServices.seo.openGraphImage ?? "/logo-nonthaburi.jpg"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ส่วนบริการอนามัยสิ่งแวดล้อม | สำนักสาธารณสุขและสิ่งแวดล้อม",
-    description:
-      "ดูแลและบริหารงานด้านการรักษาความสะอาด การจัดการขยะ และสิ่งปฏิกูลของเทศบาลนครนนทบุรี",
-    images: ["/logo-nonthaburi.jpg"],
+    title: departments.environmentalHealthServices.seo.title,
+    description: departments.environmentalHealthServices.seo.description,
+    images: [departments.environmentalHealthServices.seo.openGraphImage ?? "/logo-nonthaburi.jpg"],
   },
+  alternates: { canonical: "/departments/environmental-health-services" },
+  keywords: departments.environmentalHealthServices.seo.keywords,
 };
 
 const page = () => {
-  return <EnvironmentalHealthServicesSection/>
+  return <DepartmentPage dept="environmentalHealthServices" />;
 }
 
 export default page

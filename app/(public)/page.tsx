@@ -1,11 +1,14 @@
-import Divider from "@/components/Divider";
-import { newsIcon, Megaphone } from "@/config/iconConfig";
-import CalendarSection from "@/features/users/components/Calendar/CalendarSection";
-import Carousel from "@/features/users/components/Carousel/Carousel";
-import Service from "@/features/users/components/E-Service/Service";
+import CalendarSection from "@/components/Calendar/CalendarSection";
+import ServiceModern from "@/components/E-Service/ServiceModern";
+import EmergencyBanner from "@/components/HeroAction/EmergencyBanner";
+import QuickActionsDock from "@/components/HeroAction/QuickActionsDock";
+import BentoPresetA from "@/components/news/BentoPresetA";
+import NewsGrid, { Newsish } from "@/components/news/NewsGrid";
+import TikTokMarquee from "@/components/TikTokMarquee/TikTokMarquee";
+import CarouselHeroShadcn from "@/features/users/components/Carousel/CarouselHeroShadcn";
 import Hero from "@/features/users/components/Hero/Hero";
-import News from "@/features/users/components/News/News";
-import { NewsItems, ActivitiesItems, E_Service, BannerVideo, BannerImage } from "@/types/publicTypes";
+import { NewsItems, ActivitiesItems, E_Service, BannerImage, CarouselImage } from "@/types/publicTypes";
+import { CalendarDays, Megaphone, Newspaper, PanelsTopLeft, PartyPopper } from "lucide-react";
 
 const fetchNews = async (): Promise<NewsItems[]> => {
   const baseURL =
@@ -90,30 +93,6 @@ async function fetchService(): Promise<E_Service[]> {
   }
 }
 
-async function fetchCarousel(): Promise<BannerVideo[]> {
-  const baseURL = process.env.NODE_ENV === "development"
-    ? "http://localhost:3000"
-    : process.env.NEXT_PUBLIC_API_URL;
-
-  try {
-    const res = await fetch(`${baseURL}/api/banner/video`, {
-      next: {
-        revalidate: 30
-      },
-    });
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    const data = await res.json();
-    const raw: BannerVideo[] = data;
-    const activeOnly = raw.filter(item => item.isActive === true);
-    return activeOnly.slice(0, 6);
-  } catch (error) {
-    console.error("Error fetching Carousel data:", error);
-    return [];
-  }
-}
-
 async function fetcHero(): Promise<BannerImage[]> {
   const baseURL = process.env.NODE_ENV === "development"
     ? "http://localhost:3000"
@@ -147,22 +126,108 @@ const formatDateToThai = (dateString: string): string => {
   });
 };
 
+async function getFeatured(): Promise<CarouselImage[]> {
+  const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  try {
+    const res = await fetch(`${baseURL}/api/banner/video`, { next: { revalidate: 60 } });
+    const data = (await res.json()) as CarouselImage[];
+    return data.slice(0, 6);
+  } catch (error) {
+    console.error("Error fetching Carousel data:", error);
+    return [];
+  }
+}
+
 const page = async () => {
-  const carousel = await fetchCarousel();
   const hero = await fetcHero();
   const service = await fetchService();
   const newsData = await fetchNews();
   const activitiesData = await fetchActivities();
+  const carousel = await getFeatured();
+
+  const h = newsData?.[0];
+  const rt = activitiesData?.[0];
+  const rb = activitiesData?.[1] ?? newsData?.[1];
+
+  const hasEmergency = true; // ดึงจาก API/DB ได้ตามจริง
+  const emergencyMsg = "ค่าฝุ่น PM2.5 สูงในบางพื้นที่ กรุณาสวมหน้ากากเมื่อต้องออกนอกอาคาร";
+
+  const tiktoks = [
+    "https://www.tiktok.com/@pr.nont/video/7486066980584295698",
+    "https://www.tiktok.com/@pr.nont/video/7459298401708985607",
+    "https://www.tiktok.com/@pr.nont/video/7553583597660179720",
+    "https://www.tiktok.com/@pr.nont/video/7484850649696324872",
+    "https://www.tiktok.com/@pr.nont/video/7506066257083436295",
+    "https://www.tiktok.com/@pr.nont/video/7483430083743599890",
+    "https://www.tiktok.com/@pr.nont/video/7479034274155613448",
+    "https://www.tiktok.com/@pr.nont/video/7473789158788533559",
+    "https://www.tiktok.com/@pr.nont/video/7559532171266886920",
+    "https://www.tiktok.com/@pr.nont/video/7514247499880713490",
+    "https://www.tiktok.com/@pr.nont/video/7510235395238415623",
+    "https://www.tiktok.com/@pr.nont/video/7471581792881954066"
+  ];
 
   return (
     <>
-      <Carousel carousel={carousel} />
-      <Hero hero={hero} />
-      <Service service={service} />
-      <News newsData={newsData} title="ข่าวประชาสัมพันธ์" itemsPerPage={8} showPagination={false} showViewAll={true} showBreadcrumbs={false} viewAllLink="/news/news-updates" icon={newsIcon()} cardType="type1" />
-      <Divider />
-      <News newsData={activitiesData} title="กิจกรรมของสำนัก" itemsPerPage={8} showPagination={false} showViewAll={true} showBreadcrumbs={false} viewAllLink="/news/activities" icon={Megaphone()} cardType="type2" />
+      {hasEmergency && <EmergencyBanner
+        variant="emergency"
+        sticky
+        navbarHeight={74}
+        persistId="pm25-2025-10-18" // เปลี่ยนทุกครั้งที่มีประกาศใหม่
+        persistStorage="session"     // จำแค่ตลอดการใช้งานแท็บนี้
+        ttlMs={6 * 60 * 60 * 1000}   // 6 ชั่วโมง (เอาออกได้ถ้าไม่อยากจำ)
+        title="แจ้งเตือน PM2.5"
+        message="ค่าฝุ่นสูงในบางเขต โปรดสวมหน้ากากเมื่ออยู่นอกอาคาร"
+        href="/announcements/pm25"
+      />}
+      <CarouselHeroShadcn slides={carousel} />
+      <QuickActionsDock
+        items={[
+          { href: "/public-services", label: "e-Service", icon: <PanelsTopLeft /> },
+          { href: "/news/news-updates", label: "ข่าวประชาสัมพันธ์", icon: <Newspaper /> },
+          { href: "/news/activities", label: "กิจกรรมของสำนัก", icon: <PartyPopper />, alt: "กิจกรรม" },
+          { href: "#calendar", label: "ปฏิทินกิจกรรม", icon: <CalendarDays /> },
+          { href: "https://nakornnont.go.th/onestopservice/inform", label: "แจ้งเรื่องร้องเรียน", icon: <Megaphone /> },
+        ]}
+        title="บริการยอดนิยม"
+        subtitle="ทางลัดบริการที่ใช้งานบ่อยที่สุด"
+        className="-mt-6 md:-mt-10 relative z-10"
+      />
+      <ServiceModern
+        items={service}
+        label="บริการออนไลน์"
+        subtitle="คลิกเพื่อเข้าใช้บริการ"
+        headingTitle="e-Service"
+        headingDescription="บริการออนไลน์ทุกที่ทุกเวลา—ใช้งานง่ายทุกอุปกรณ์"
+        headingCtaHref="/public-services"
+        showMoreCount={15}
+        onMoreHref="/public-services"
+      />
+      <BentoPresetA
+        hero={{ title: h.title, href: `/news/news-updates/${h.id}`, image: h.image, kicker: "ข่าวประชาสัมพันธ์" }}
+        rightTop={{ title: rt.title, href: `/news/activities/${rt.id}`, image: rt.image, kicker: "กิจกรรม" }}
+        rightBottom={{ title: rb.title, href: `/news/activities/${rb.id}`, image: rb.image, kicker: "กิจกรรม" }}
+        headingTitle="ไฮไลท์ข่าวและกิจกรรม"
+        headingSubtitle="อัพเดตข่าวสารและกิจกรรมล่าสุดจากสำนัก"
+      />
+      <NewsGrid
+        title="ข่าวประชาสัมพันธ์"
+        items={newsData as Newsish[]}
+        type="news"
+        viewAllHref="/news/news-updates"
+        maxCards={6}
+      />
+
+      <NewsGrid
+        title="กิจกรรมของสำนัก"
+        items={activitiesData as Newsish[]}
+        type="activities"
+        viewAllHref="/news/activities"
+        maxCards={6}
+      />
+      {/* <Hero hero={hero} /> */}
       <CalendarSection />
+      <TikTokMarquee urls={tiktoks} />
     </>
   )
 }

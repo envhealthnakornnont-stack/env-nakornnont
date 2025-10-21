@@ -1,12 +1,12 @@
-import { BannerImage,  BannerVideo} from "@/types/publicTypes";
+import { BannerImage, CarouselImage } from "@/types/publicTypes";
 import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef } from "react";
 
 interface BannerCardProps {
-    management?: string;
-    banner: BannerImage | BannerVideo;
+    management?: "image" | "carousel-img";
+    banner: BannerImage | CarouselImage;
     editLink: string;
     deleteApi: string;
 }
@@ -37,15 +37,25 @@ const BannerCard: React.FC<BannerCardProps> = ({ management, banner, editLink, d
     const openModal = () => modalRef.current?.showModal();
     const closeModal = () => modalRef.current?.close();
 
+    const sortOrder = Number((banner as any).sortOrder) || 0;
+    console.log((banner as CarouselImage));
+
     return (
         <div className="card card-compact bg-base-100 border-2 border-base-300 shadow-sm relative">
-            <div className="absolute top-0 left-0 rounded-[14px] w-12 h-10 bg-primary/50 flex items-center justify-center  border border-primary">
-                <span className="text-primary-content font-bold">{banner.sortOrder}</span>
+            <div className="absolute top-0 left-0 rounded-[14px] w-12 h-10 bg-primary/50 flex items-center justify-center border border-primary">
+                <span className="text-primary-content font-bold">{sortOrder}</span>
             </div>
-            {management === "video" ? (
-                <video className="w-full h-48 object-cover rounded-t-[14px]" autoPlay muted playsInline loop>
-                    <source src={resolvePreviewSrc((banner as BannerVideo).videoDesktop)} type="video/mp4" />
-                </video>
+
+            {management === "carousel-img" ? (
+                <figure>
+                    <Image
+                        height={824}
+                        width={1440}
+                        src={resolvePreviewSrc((banner as CarouselImage).imageDesktop)}
+                        alt={banner.title}
+                        className="w-full h-48 object-cover rounded-t-[14px]"
+                    />
+                </figure>
             ) : (
                 <figure>
                     <Image
@@ -57,20 +67,37 @@ const BannerCard: React.FC<BannerCardProps> = ({ management, banner, editLink, d
                     />
                 </figure>
             )}
+
             <div className="card-body">
-                <h2 className="card-title">{banner.title} <div className={`badge ${banner.isActive ? "badge-success" : "badge-error"} badge-md`}></div></h2>
-                <p className="text-sm text-gray-500">
-                    Updated: {new Date(banner.updatedAt).toLocaleString()}
-                </p>
+                <h2 className="card-title">
+                    {banner.title}
+                    {"isActive" in banner && (
+                        <div className={`badge ${banner.isActive ? "badge-success" : "badge-error"} badge-md`}></div>
+                    )}
+                </h2>
+
+                {management === "carousel-img" ? (
+                    <div className="text-xs text-base-content/70">
+                        {(banner as CarouselImage).badge && <p>ป้าย: {(banner as CarouselImage).badge}</p>}
+                        {"priority" in banner && <p>ความสำคัญ: {(banner as any).priority}</p>}
+                        <p className="text-sm text-gray-500">
+                            Updated: {"updatedAt" in banner && banner.updatedAt ? new Date(banner.updatedAt).toLocaleString() : "N/A"}
+                        </p>
+                    </div>
+                ) :
+                    <div className="text-xs text-base-content/70">
+                        <p className="text-sm text-gray-500">
+                            Updated: {"updatedAt" in banner && banner.updatedAt ? new Date(banner.updatedAt).toLocaleString() : "N/A"}
+                        </p>
+                    </div>
+                }
+
                 <div className="card-actions justify-end">
-                    <Link href={`${editLink}`} className="btn btn-primary">
-                        แก้ไข
-                    </Link>
-                    <button
-                        onClick={openModal}
-                        className="btn btn-error">
+                    <Link href={`${editLink}`} className="btn btn-primary">แก้ไข</Link>
+                    <button onClick={openModal} className="btn btn-error">
                         {deleting ? "กำลังลบ..." : "ลบ"}
                     </button>
+
                     <dialog ref={modalRef} className="modal">
                         <div className="modal-box">
                             <h3 className="font-bold text-lg">ลบแบนเนอร์</h3>

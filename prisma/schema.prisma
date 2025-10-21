@@ -83,16 +83,21 @@ model BannerImage {
   updatedAt    DateTime @updatedAt
 }
 
-model BannerVideo {
-  id           String   @id @default(uuid())
-  title        String // ชื่อหรือหัวข้อของแบนเนอร์
-  videoMobile  String // URL ของรูปแบนเนอร์
-  videoDesktop String // URL ของรูปแบนเนอร์
-  isActive     Boolean  @default(true) // สถานะการแสดงแบนเนอร์
-  sortOrder    Int      @default(1) // ลำดับการแสดงแบนเนอร์
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+model CarouselImage {
+  id            String   @id @default(uuid())
+  title         String
+  href          String
+  imageMobile   String   // URL ไฟล์ภาพ Mobile
+  imageDesktop  String   // URL ไฟล์ภาพ Desktop
+  badge         String?  // เช่น "ประกาศ" | "ข่าวด่วน"
+  priority      Int       @default(1) // ค่ามาก = เด่นกว่า
+  isActive      Boolean   @default(true)
+  publishedAt   DateTime  @default(now())
+  sortOrder     Int       @default(1) // ลำดับแสดงภายในชุดเดียวกัน
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
+
 
 model EService {
   id        String   @id @default(uuid())

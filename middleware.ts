@@ -53,6 +53,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/api") &&
     !pathname.startsWith("/api/auth") &&
     !pathname.startsWith("/api/uploads") &&
+    !pathname.startsWith("/api/contact") &&
     !pathname.startsWith("/api/activities") &&
     !pathname.startsWith("/api/news") &&
     !pathname.startsWith("/api/agency/personnel") &&

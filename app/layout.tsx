@@ -1,4 +1,6 @@
-import { cookies } from "next/headers";
+import type { Metadata } from "next";
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css";
 
 const baseURL =
@@ -8,7 +10,7 @@ const baseURL =
 
 const logoUrl = `/logo-nonthaburi.jpg`;
 
-export const metadata = {
+export const metadata: Metadata = {
   metadataBase: new URL(baseURL),
   title: "หน้าแรก | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
   description:
@@ -43,16 +45,34 @@ export const metadata = {
   },
 };
 
-export default async function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  const theme = (await cookies()).get("theme")?.value || "light";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme={theme}>
-      <body className={`antialiased bg-base-300/30`}>
-        {children}
+    <html lang="th" suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground antialiased">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster
+            richColors
+            closeButton
+            position="bottom-right"
+            toastOptions={{
+              classNames: {
+                content:
+                  "flex flex-row gap-2 [&>[data-title]]:font-medium " +
+                  // กันบรรทัดยาวล้น / ให้พับอย่างสวย
+                  "[&>[data-title]]:whitespace-normal [&>[data-title]]:overflow-wrap/anywhere " +
+                  "[&>[data-description]]:text-muted-foreground " +
+                  "[&>[data-description]]:whitespace-normal [&>[data-description]]:overflow-wrap/anywhere",
+              },
+            }}
+          />
+        </ThemeProvider>
       </body>
     </html>
   );

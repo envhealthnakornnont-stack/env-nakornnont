@@ -1,6 +1,8 @@
 // import components
-import Footer from "@/features/users/components/Footer/Footer";
+// import Footer from "@/features/users/components/Footer/Footer";
+import Footer from "@/components/Footer/Footer";
 import Drawer from "@/features/users/components/NavbarDrawer/Drawer";
+import SiteHeader from "@/components/navbar/site-header";
 
 export default function PublicLayout({
   children,
@@ -61,7 +63,8 @@ export default function PublicLayout({
 
   return (
     <>
-      <Drawer menu={mainMenu} pathname={"/"} />
+      {/* <Drawer menu={mainMenu} pathname={"/"} /> */}
+      <SiteHeader/>
       {children}
       <Footer />
     </>

@@ -1,6 +1,8 @@
+import PersonSection from "@/components/Personnel/PersonSection";
 import ManagementSection from "@/features/users/components/Management/ManagementSection";
+import type { Metadata } from "next";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "บุคลากรผู้บริหาร | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
   description:
     "รายชื่อและข้อมูลบุคลากรผู้บริหารของสำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี ที่รับผิดชอบงานด้านสุขภาพและสิ่งแวดล้อมของประชาชน",
@@ -41,7 +43,7 @@ export const metadata = {
 };
 
 const page = () => {
-  return <ManagementSection />
+  return <PersonSection/>
 }
 
 export default page

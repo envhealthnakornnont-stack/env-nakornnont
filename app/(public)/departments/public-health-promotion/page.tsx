@@ -1,41 +1,32 @@
 import PublicHealthPromotionSection from "@/features/users/components/Departments/PublicHealthPromotionSection";
+import type { Metadata } from "next";
+import { departments } from "@/lib/departments";
+import DepartmentPage from "@/components/Departments/DepartmentPage";
 
-export const metadata = {
-  title: "ส่วนส่งเสริมสาธารณสุข | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
-  description:
-    "ข้อมูลภารกิจของฝ่ายวิชาการและการประเมินผล และฝ่ายส่งเสริมสาธารณสุข ครอบคลุมงานนโยบายสาธารณสุข การติดตามแผนสุขภาพ งานอาสาสมัครสาธารณสุข งานส่งเสริมคุณภาพชีวิตผู้สูงอายุ และงานสัตวแพทย์",
-  keywords: [
-    "ส่วนส่งเสริมสาธารณสุข",
-    "งานอสม.",
-    "สุขภาพชุมชน",
-    "ประเมินผลสุขภาพ",
-    "งานสัตวแพทย์",
-    "งานสุขศึกษา",
-    "เทศบาลนครนนทบุรี",
-  ],
-  alternates: {
-    canonical: "/departments/public-health-promotion",
-  },
+export const metadata: Metadata = {
+  title: departments.publicHealthPromotion.seo.title,
+  description: departments.publicHealthPromotion.seo.description,
   openGraph: {
-    title: "ส่วนส่งเสริมสาธารณสุข | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
-    description:
-      "รวมข้อมูลภารกิจหลักของงานส่งเสริมสุขภาพ งานอสม. การประเมินผลสุขภาพ และงานบริการสัตวแพทย์ในพื้นที่เทศบาลนครนนทบุรี",
+    title: departments.publicHealthPromotion.seo.title,
+    description: departments.publicHealthPromotion.seo.description,
     url: "/departments/public-health-promotion",
-    type: "article",
-    siteName: "เว็บไซต์เทศบาลนครนนทบุรี",
+    siteName: "เทศบาลนครนนทบุรี",
     locale: "th_TH",
-    images: ["/logo-nonthaburi.jpg"],
+    type: "article",
+    images: [departments.publicHealthPromotion.seo.openGraphImage ?? "/logo-nonthaburi.jpg"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ส่วนส่งเสริมสาธารณสุข | สำนักสาธารณสุขและสิ่งแวดล้อม",
-    description: "ภารกิจด้านส่งเสริมสุขภาพ การติดตามประเมินผล และงานสัตวแพทย์",
-    images: ["/logo-nonthaburi.jpg"],
+    title: departments.publicHealthPromotion.seo.title,
+    description: departments.publicHealthPromotion.seo.description,
+    images: [departments.publicHealthPromotion.seo.openGraphImage ?? "/logo-nonthaburi.jpg"],
   },
+  alternates: { canonical: "/departments/public-health-promotion" },
+  keywords: departments.publicHealthPromotion.seo.keywords,
 };
 
 const page = () => {
-  return <PublicHealthPromotionSection/>
+  return <DepartmentPage dept="publicHealthPromotion" />;
 }
 
 export default page

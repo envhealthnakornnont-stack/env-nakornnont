@@ -19,18 +19,22 @@ interface BannerImage {
     updatedAt: string;
 }
 
-interface BannerVideo {
+interface CarouselImage {
     id: string;
     title: string;
-    videoMobile: string;
-    videoDesktop: string;
+    href: string;
+    imageMobile: string;
+    imageDesktop: string;
+    badge?: string | null;
+    priority: number;
     isActive: boolean;
     sortOrder: string;
+    publishedAt?: string | null;
     createdAt: string;
     updatedAt: string;
 }
 
-type Banner = BannerImage | BannerVideo;
+type Banner = BannerImage | CarouselImage;
 
 const ManagementPage = ({ management, getsApi, createLink, editLink, deleteApi }: { management?: string, getsApi: string, createLink: string, editLink: string, deleteApi: string }) => {
 
@@ -47,12 +51,7 @@ const ManagementPage = ({ management, getsApi, createLink, editLink, deleteApi }
             setError(null);
             try {
                 const { data } = await axios.get(`${getsApi}`);
-                const bannerWithDate = data.map((a: any) => ({
-                    ...a,
-                    createdAt: a.createdAt && !isNaN(Date.parse(a.createdAt)) ? new Date(a.createdAt) : null,
-                    updatedAt: a.updatedAt && !isNaN(Date.parse(a.updatedAt)) ? new Date(a.updatedAt) : null,
-                }));
-                setBanners(bannerWithDate);
+                setBanners(data);
             } catch (error) {
                 console.log(error);
                 setError(new Error(axios.isAxiosError(error) ? error.response?.data?.message || "Failed to fetch Banner Image" : "An unexpected error occurred"));
@@ -73,8 +72,7 @@ const ManagementPage = ({ management, getsApi, createLink, editLink, deleteApi }
 
     // ฟังก์ชันเรียงลำดับข้อมูลผู้ใช้งานตามตัวเลือก
     const sortedFilteredBanner = useMemo(() => {
-        let sorted = [...filteredBanner];
-
+        const sorted = [...filteredBanner];
         switch (sort) {
             case "ชื่อแบนเนอร์":
                 sorted.sort((a, b) => a.title.localeCompare(b.title));
@@ -85,19 +83,23 @@ const ManagementPage = ({ management, getsApi, createLink, editLink, deleteApi }
             case "วันที่อัปเดต":
                 sorted.sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
                 break;
+            case "ความสำคัญ":
+                sorted.sort((a, b) => Number((b as any).priority || 0) - Number((a as any).priority || 0));
+                break;
+            case "วันที่เผยแพร่":
+                sorted.sort(
+                    (a, b) =>
+                        new Date((b as any).publishedAt ?? 0).getTime() -
+                        new Date((a as any).publishedAt ?? 0).getTime()
+                );
+                break;
         }
 
         return sorted;
     }, [filteredBanner, sort]);
 
-    const handleSort = (option: string) => {
-        setSort(option);
-    };
-
-    // ฟังก์ชันรับ query จาก SearchBar
-    const handleSearch = (query: string) => {
-        setSearchQuery(query);
-    };
+    const handleSort = (option: string) => setSort(option);
+    const handleSearch = (query: string) => setSearchQuery(query);
 
     if (loading) {
         return (
@@ -145,7 +147,12 @@ const ManagementPage = ({ management, getsApi, createLink, editLink, deleteApi }
                 </p>
             </div>
             <div className="overflow-x-auto mt-6 grow">
-                <BannerGrid management={management} banners={sortedFilteredBanner} createLink={createLink} editLink={editLink} deleteApi={deleteApi} />
+                <BannerGrid
+                    management={management}
+                    banners={sortedFilteredBanner}
+                    createLink={createLink}
+                    editLink={editLink}
+                    deleteApi={deleteApi} />
             </div>
         </div>
     )

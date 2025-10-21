@@ -1,8 +1,5 @@
-// import Next Components
 import Link from "next/link";
 import Image from "next/image";
-
-// import component
 import NavbarMenuItem from "./NavbarMenuItem";
 import NavbarDrawerButton from "./NavbarDrawerButton";
 import Dropdown from "@/components/Dropdown";

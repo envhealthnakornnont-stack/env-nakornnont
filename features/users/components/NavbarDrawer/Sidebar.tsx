@@ -1,5 +1,4 @@
 "use client";
-// import Next Components
 import Link from "next/link";
 import Image from "next/image";
 

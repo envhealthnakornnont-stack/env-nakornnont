@@ -1,5 +1,6 @@
-import FlowChart from "@/features/users/components/Structure/FlowChart";
-export const metadata = {
+import StructureView from "@/components/Structure/StructureView";
+import type { Metadata } from "next";
+export const metadata: Metadata = {
   title: "โครงสร้างหน่วยงาน | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
   description:
     "ข้อมูลโครงสร้างการบริหารงานของสำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี เพื่อความเข้าใจในหน้าที่และความรับผิดชอบของแต่ละส่วนงาน",
@@ -40,10 +41,6 @@ export const metadata = {
   },
 };
 
-const page = () => {
-  return (
-    <FlowChart />
-  );
-};
-
-export default page;
+export default function Page() {
+  return <StructureView />;
+}

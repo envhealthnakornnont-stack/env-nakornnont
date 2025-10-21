@@ -31,6 +31,7 @@ export interface NewsItem {
 }
 
 export interface ActivitiesItems {
+    description: string;
     id: string;
     title: string;
     slug: string;
@@ -82,6 +83,21 @@ export interface BannerVideo {
     updatedAt: string;
 }
 
+export interface CarouselImage {
+    id: string;
+    title: string;
+    href: string;
+    imageMobile: string;
+    imageDesktop: string;
+    badge?: string | null;
+    priority: number;
+    isActive: boolean;
+    sortOrder: number;
+    publishedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface Personnel {
     id: string;
     nameTitle: string;
@@ -98,7 +114,7 @@ export interface Personnel {
 export interface E_Service {
     id: string;
     title: string;
-    image: String;
+    image: string;
     linkURL: string;
     createdAt: string;
     updatedAt: string;

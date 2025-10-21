@@ -1,54 +1,54 @@
 import React from "react";
 import Link from "next/link";
-import { BannerImage, BannerVideo } from "@/types/publicTypes";
+import { BannerImage, CarouselImage } from "@/types/publicTypes";
 import BannerCard from "@/features/admin/components/BannerManagement/BannerCard";
 
 interface BannerCardsGridProps {
   management?: string;
-  banners: (BannerImage | BannerVideo)[];
+  banners: (BannerImage | CarouselImage)[];
   createLink: string;
   editLink: string;
   deleteApi: string;
 }
 
+function isBannerImage(b: any): b is BannerImage {
+  return "imageDesktop" in b && "imageMobile" in b;
+}
+
+function isCarouselImage(b: any): b is CarouselImage {
+  return "imageDesktop" in b && "imageMobile" in b;
+}
+
 const BannerCardsGrid: React.FC<BannerCardsGridProps> = ({ management, banners, createLink, editLink, deleteApi }) => {
   const totalCards = 6;
   const emptyCount = Math.max(totalCards - banners.length, 0);
-  
-  function isBannerImage(banner: BannerImage | BannerVideo): banner is BannerImage {
-    return (banner as BannerImage) !== undefined;
-  }
-  
-  function isBannerVideo(banner: BannerImage | BannerVideo): banner is BannerVideo {
-    return (banner as BannerVideo) !== undefined;
-  }
-  
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       {banners.map((banner) => {
-        if (isBannerImage(banner)) {
+        if (management === "image" && isBannerImage(banner)) {
           return (
             <BannerCard
               key={banner.id}
-              management={management}
+              management="image"
               banner={banner}
               editLink={`${editLink}/${banner.id}`}
               deleteApi={deleteApi}
             />
           );
-        } else if (isBannerVideo(banner)) {
-          return (
-            <BannerCard
-              key={banner.id}
-              management={management}
-              banner={banner}
-              editLink={`${editLink}/${banner.id}`}
-              deleteApi={deleteApi}
-            />
-          );
-        } else {
-          return null;
         }
+        if (management === "carousel-img" && isCarouselImage(banner)) {
+          return (
+            <BannerCard
+              key={banner.id}
+              management="carousel-img"
+              banner={banner}
+              editLink={`${editLink}/${banner.id}`}
+              deleteApi={deleteApi}
+            />
+          );
+        }
+        return null;
       })}
 
       {Array.from({ length: emptyCount }).map((_, index) => (

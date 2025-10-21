@@ -1,43 +1,30 @@
+import DepartmentPage from "@/components/Departments/DepartmentPage";
 import EnvironmentalHealthPromotionSection from "@/features/users/components/Departments/EnvironmentalHealthPromotionSection";
+import { departments } from "@/lib/departments";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "ส่วนส่งเสริมอนามัยสิ่งแวดล้อม | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
-  description:
-    "ภารกิจด้านสุขาภิบาล คุ้มครองผู้บริโภค เฝ้าระวังคุณภาพสิ่งแวดล้อม และการจัดการทรัพยากรธรรมชาติในเขตเทศบาลนครนนทบุรี รวมถึงการควบคุมร้านอาหาร ตลาดสด โรงงาน และแหล่งมลพิษต่าง ๆ",
-  keywords: [
-    "สุขาภิบาล",
-    "สิ่งแวดล้อม",
-    "คุ้มครองผู้บริโภค",
-    "ตรวจสอบคุณภาพน้ำ",
-    "เหตุรำคาญ",
-    "มลพิษ",
-    "ทรัพยากรธรรมชาติ",
-    "เทศบาลนครนนทบุรี",
-  ],
-  alternates: {
-    canonical: "/departments/environmental-health-promotion",
-  },
+export const metadata: Metadata = {
+  title: departments.environmentalHealthPromotion.seo.title,
+  description: departments.environmentalHealthPromotion.seo.description,
   openGraph: {
-    title: "ส่วนส่งเสริมอนามัยสิ่งแวดล้อม | สำนักสาธารณสุขและสิ่งแวดล้อม",
-    description:
-      "ดำเนินงานควบคุมสุขาภิบาล ตรวจสอบมลพิษ คุ้มครองผู้บริโภค และอนุรักษ์ทรัพยากรธรรมชาติในเขตเทศบาลนครนนทบุรี",
+    title: departments.environmentalHealthPromotion.seo.title,
+    description: departments.environmentalHealthPromotion.seo.description,
     url: "/departments/environmental-health-promotion",
-    type: "article",
-    siteName: "เว็บไซต์เทศบาลนครนนทบุรี",
+    siteName: "เทศบาลนครนนทบุรี",
     locale: "th_TH",
-    images: ["/logo-nonthaburi.jpg"], 
+    type: "article",
+    images: [departments.environmentalHealthPromotion.seo.openGraphImage ?? "/logo-nonthaburi.jpg"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ส่วนส่งเสริมอนามัยสิ่งแวดล้อม | สำนักสาธารณสุขและสิ่งแวดล้อม",
-    description:
-      "ข้อมูลด้านการควบคุมสุขาภิบาล เหตุรำคาญ มลพิษ และการอนุรักษ์สิ่งแวดล้อมในเขตเทศบาลนครนนทบุรี",
-    images: ["/logo-nonthaburi.jpg"],
+    title: departments.environmentalHealthPromotion.seo.title,
+    description: departments.environmentalHealthPromotion.seo.description,
+    images: [departments.environmentalHealthPromotion.seo.openGraphImage ?? "/logo-nonthaburi.jpg"],
   },
+  alternates: { canonical: "/departments/environmental-health-promotion" },
+  keywords: departments.environmentalHealthPromotion.seo.keywords,
 };
 
-const page = () => {
-  return <EnvironmentalHealthPromotionSection/>
+export default function Page() {
+  return <DepartmentPage dept="environmentalHealthPromotion" />;
 }
-
-export default page

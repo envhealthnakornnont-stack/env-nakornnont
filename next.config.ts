@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
         hostname: "cdn.pixabay.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "**.tiktokcdn.com", // ครอบ p16-sign-sg/p19-*/ฯลฯ
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
   output: "standalone",

@@ -1,4 +1,3 @@
-// import Next Components
 import Link from "next/link";
 
 interface NavbarMenuItemProps {
