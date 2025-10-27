@@ -1,13 +1,14 @@
 import CalendarSection from "@/components/Calendar/CalendarSection";
-import ServiceModern from "@/components/E-Service/ServiceModern";
-import EmergencyBanner from "@/components/HeroAction/EmergencyBanner";
-import QuickActionsDock from "@/components/HeroAction/QuickActionsDock";
-import BentoPresetA from "@/components/news/BentoPresetA";
-import NewsGrid, { Newsish } from "@/components/news/NewsGrid";
+import ServiceSection from "@/components/E-Service/ServiceSection";
+import { EServiceItem } from "@/components/E-Service/types";
+import EmergencyBannerStack from "@/components/EmergencyBanner/EmergencyBannerStack";
+import QuickActionsDock from "@/components/QuickActionsDock/QuickActionsDock";
+import BentoPresetA from "@/components/News/BentoPresetA";
+import NewsGrid from "@/components/News/NewsGrid";
 import TikTokMarquee from "@/components/TikTokMarquee/TikTokMarquee";
 import CarouselHeroShadcn from "@/features/users/components/Carousel/CarouselHeroShadcn";
 import Hero from "@/features/users/components/Hero/Hero";
-import { NewsItems, ActivitiesItems, E_Service, BannerImage, CarouselImage } from "@/types/publicTypes";
+import { NewsItems, ActivitiesItems, BannerImage, CarouselImage } from "@/types/publicTypes";
 import { CalendarDays, Megaphone, Newspaper, PanelsTopLeft, PartyPopper } from "lucide-react";
 
 const fetchNews = async (): Promise<NewsItems[]> => {
@@ -72,7 +73,7 @@ const fetchActivities = async (): Promise<ActivitiesItems[]> => {
   }
 };
 
-async function fetchService(): Promise<E_Service[]> {
+async function fetchService(): Promise<EServiceItem[]> {
   const baseURL = process.env.NODE_ENV === "development"
     ? "http://localhost:3000"
     : process.env.NEXT_PUBLIC_API_URL;
@@ -149,8 +150,11 @@ const page = async () => {
   const rt = activitiesData?.[0];
   const rb = activitiesData?.[1] ?? newsData?.[1];
 
-  const hasEmergency = true; // ดึงจาก API/DB ได้ตามจริง
-  const emergencyMsg = "ค่าฝุ่น PM2.5 สูงในบางพื้นที่ กรุณาสวมหน้ากากเมื่อต้องออกนอกอาคาร";
+  const banners = [
+    { id: "pm25-2025-10-20", title: "แจ้งเตือน PM2.5", message: "ค่าฝุ่นสูง...", href: "/announcements/pm25", variant: "emergency" as const, ttlMs: 6 * 60 * 60 * 1000 },
+    { id: "dengue-2025-10", title: "รณรงค์ไข้เลือดออก", message: "เก็บบ้าน เก็บน้ำ เก็บขยะ", href: "/announcements/dengue", variant: "warning" as const },
+    { id: "clinic-extend-hrs", title: "ขยายเวลาให้บริการคลินิก", message: "จันทร์–ศุกร์ 08:30–20:00 น.", href: "/announcements/clinic-hours", variant: "info" as const, compact: true },
+  ];
 
   const tiktoks = [
     "https://www.tiktok.com/@pr.nont/video/7486066980584295698",
@@ -169,39 +173,26 @@ const page = async () => {
 
   return (
     <>
-      {hasEmergency && <EmergencyBanner
-        variant="emergency"
-        sticky
-        navbarHeight={74}
-        persistId="pm25-2025-10-18" // เปลี่ยนทุกครั้งที่มีประกาศใหม่
-        persistStorage="session"     // จำแค่ตลอดการใช้งานแท็บนี้
-        ttlMs={6 * 60 * 60 * 1000}   // 6 ชั่วโมง (เอาออกได้ถ้าไม่อยากจำ)
-        title="แจ้งเตือน PM2.5"
-        message="ค่าฝุ่นสูงในบางเขต โปรดสวมหน้ากากเมื่ออยู่นอกอาคาร"
-        href="/announcements/pm25"
-      />}
+      <EmergencyBannerStack items={banners} sticky navbarHeight={74} />
       <CarouselHeroShadcn slides={carousel} />
       <QuickActionsDock
+        id="quick-actions"
         items={[
           { href: "/public-services", label: "e-Service", icon: <PanelsTopLeft /> },
           { href: "/news/news-updates", label: "ข่าวประชาสัมพันธ์", icon: <Newspaper /> },
-          { href: "/news/activities", label: "กิจกรรมของสำนัก", icon: <PartyPopper />, alt: "กิจกรรม" },
+          { href: "/news/activities", label: "กิจกรรมของสำนัก", icon: <PartyPopper /> },
           { href: "#calendar", label: "ปฏิทินกิจกรรม", icon: <CalendarDays /> },
-          { href: "https://nakornnont.go.th/onestopservice/inform", label: "แจ้งเรื่องร้องเรียน", icon: <Megaphone /> },
+          { href: "https://nakornnont.go.th/onestopservice/inform", label: "แจ้งเรื่องร้องเรียน", icon: <Megaphone />, newTab: true },
         ]}
         title="บริการยอดนิยม"
         subtitle="ทางลัดบริการที่ใช้งานบ่อยที่สุด"
         className="-mt-6 md:-mt-10 relative z-10"
       />
-      <ServiceModern
+      <ServiceSection
         items={service}
-        label="บริการออนไลน์"
-        subtitle="คลิกเพื่อเข้าใช้บริการ"
         headingTitle="e-Service"
         headingDescription="บริการออนไลน์ทุกที่ทุกเวลา—ใช้งานง่ายทุกอุปกรณ์"
-        headingCtaHref="/public-services"
-        showMoreCount={15}
-        onMoreHref="/public-services"
+        moreHref="/public-services"
       />
       <BentoPresetA
         hero={{ title: h.title, href: `/news/news-updates/${h.id}`, image: h.image, kicker: "ข่าวประชาสัมพันธ์" }}
@@ -210,21 +201,8 @@ const page = async () => {
         headingTitle="ไฮไลท์ข่าวและกิจกรรม"
         headingSubtitle="อัพเดตข่าวสารและกิจกรรมล่าสุดจากสำนัก"
       />
-      <NewsGrid
-        title="ข่าวประชาสัมพันธ์"
-        items={newsData as Newsish[]}
-        type="news"
-        viewAllHref="/news/news-updates"
-        maxCards={6}
-      />
-
-      <NewsGrid
-        title="กิจกรรมของสำนัก"
-        items={activitiesData as Newsish[]}
-        type="activities"
-        viewAllHref="/news/activities"
-        maxCards={6}
-      />
+      <NewsGrid mode="home" type="news" title="ข่าวประชาสัมพันธ์" items={newsData} viewAllHref="/news/news-updates" />
+      <NewsGrid mode="home" type="activities" title="กิจกรรมของสำนัก" items={activitiesData} viewAllHref="/news/activities" />
       {/* <Hero hero={hero} /> */}
       <CalendarSection />
       <TikTokMarquee urls={tiktoks} />

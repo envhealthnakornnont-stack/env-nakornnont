@@ -1,6 +1,6 @@
-import DepartmentPage from "@/components/Departments/DepartmentPage";
+import DepartmentView from "@/components/Departments/DepartmentView";
+import { departments } from "@/components/Departments/utils";
 import GeneralAffairsSection from "@/features/users/components/Departments/GeneralAffairsSection";
-import { departments } from "@/lib/departments";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const page = () => {
-  return <DepartmentPage dept="generalAffairs"/> 
+  return <DepartmentView dept="generalAffairs" />;
 }
 
 export default page

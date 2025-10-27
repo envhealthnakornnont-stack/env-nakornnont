@@ -157,7 +157,7 @@ export function NavigationMenuNakornnont() {
                     <NavigationMenuContent className="z-50 rounded-xl border bg-popover p-2 shadow-md md:left-1/2 md:-translate-x-1/2 2xl:left-0 2xl:translate-x-0 mt-1">
                         <ul className="grid gap-2 p-3 w-[calc(100vw-2rem)] max-w-[720px] grid-cols-1 md:grid-cols-2 max-h-[70vh] overflow-auto">
                             <TileItem href="/departments/general-affairs" title="ฝ่ายบริหารงานทั่วไป" icon={<Building2 className="h-4 w-4" />}>งานธุรการ การเงิน พัสดุ และงานอำนวยการสนับสนุนภารกิจหลัก</TileItem>
-                            <TileItem href="/departments/public-health-promotion" title="ส่วนส่งเสริมสาธารณสุข" icon={<Users2 className="h-4 w-4" />}>ส่งเสริมสุขภาพ ป้องกันโรค และสร้างเสริมศักยภาพชุมชน</TileItem>
+                            <TileItem href="/departments/public-health-promotion" title="ส่วนส่งเสริมสาธารณสุข" icon={<Building2 className="h-4 w-4" />}>ส่งเสริมสุขภาพ ป้องกันโรค และสร้างเสริมศักยภาพชุมชน</TileItem>
                             <TileItem href="/departments/environmental-health-services" title="ส่วนบริการอนามัยสิ่งแวดล้อม" icon={<Building2 className="h-4 w-4" />}>บริการตรวจสอบ ควบคุม และจัดการด้านสิ่งแวดล้อม</TileItem>
                             <TileItem href="/departments/environmental-health-promotion" title="ส่วนส่งเสริมอนามัยสิ่งแวดล้อม" icon={<Building2 className="h-4 w-4" />}>รณรงค์ความสะอาด คุณภาพอากาศ น้ำเสีย ขยะ และสิ่งแวดล้อมเมือง</TileItem>
                         </ul>

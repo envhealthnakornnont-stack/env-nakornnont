@@ -1,8 +1,8 @@
 // app/(public)/public-services/page.tsx
 import ServiceCatalog from "@/components/E-Service/ServiceCatalog";
-import type { E_Service } from "@/types/publicTypes";
+import { EServiceItem } from "@/components/E-Service/types";
 
-async function fetchEServices(): Promise<E_Service[]> {
+async function fetchEServices(): Promise<EServiceItem[]> {
   const baseURL =
     process.env.NODE_ENV === "development"
       ? "http://localhost:3000"
@@ -13,7 +13,7 @@ async function fetchEServices(): Promise<E_Service[]> {
       next: { revalidate: 60 },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = (await res.json()) as E_Service[];
+    const data = (await res.json()) as EServiceItem[];
     // ให้แน่ใจว่าเป็น primitive string
     return data.map((x) => ({
       id: String(x.id),
@@ -29,16 +29,14 @@ async function fetchEServices(): Promise<E_Service[]> {
 }
 
 export default async function PublicServicesPage() {
-  const items = await fetchEServices();
+  const service = await fetchEServices();
 
   return (
     <ServiceCatalog
-      items={items}
+      items={service}
       headingTitle="e-Service ทั้งหมด"
       headingDescription="รวมบริการออนไลน์ของสำนักสาธารณสุขและสิ่งแวดล้อม ใช้งานได้ตลอด 24 ชั่วโมง"
-      label="บริการออนไลน์"
-      subtitle="คลิกเพื่อเข้าใช้บริการ"
-      pageSize={9}         // ปรับได้: จำนวนการ์ดต่อการกดแสดงเพิ่ม
+      pageSize={9}
     />
   );
 }

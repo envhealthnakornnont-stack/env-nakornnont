@@ -1,160 +1,124 @@
-import Breadcrumbs from "@/components/Breadcrumbs";
-import AuthorInfo from "@/features/users/components/News/AuthorInfo";
-import ShareButton from "@/features/users/components/News/ShareButton";
-import { ActivityItem } from "@/types/publicTypes";
+// app/activities/[id]/page.tsx
+import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import type { ActivityArticle as ActivityType } from "@/components/News/Content/ActivityArticle/types";
+import ActivityArticle from "@/components/News/Content/ActivityArticle/ActivityArticle";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+  BreadcrumbPage,
+} from "@/components/ui/breadcrumb";
+import { resolveUpload } from "@/components/News/Content/ActivityArticle/utils";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params;
-    const baseURL =
-        process.env.NODE_ENV === "development"
-            ? "http://localhost:3000"
-            : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-    const canonicalUrl = `/news/activities/${id}`;
-    const defaultImage = `/logo-nonthaburi.jpg`;
-    try {
-        const res = await fetch(`${baseURL}/api/activities/${id}`, {
-            next: { revalidate: 30 },
-        });
+// -------- data helpers --------
+async function fetchActivity(id: string): Promise<ActivityType | null> {
+  const base =
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:3000"
+      : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-        if (!res.ok) {
-            return {
-                title: "ไม่พบข้อมูลกิจกรรม",
-                description: "กิจกรรมที่คุณค้นหาอาจไม่มีอยู่หรือถูกลบไปแล้ว",
-                alternates: { canonical: canonicalUrl },
-                keywords: ["กิจกรรม", "เทศบาล", "สาธารณสุข", "นครนนท์"],
-            };
-        }
+  const res = await fetch(`${base}/api/activities/${id}`, { next: { revalidate: 30 } });
+  if (!res.ok) return null;
+  const data = await res.json();
 
-        const data = await res.json();
+  // ปรับให้ตรงกับ types ที่เรากำหนด
+  const item: ActivityType = {
+    id: data.id,
+    title: data.title,
+    content: data.content || "",
+    createdAt: data.createdAt,
+    location: data.location ?? null,
+    organizer: data.organizer ?? null,
+    gallery: Array.isArray(data.gallery)
+      ? data.gallery.map((g: any) => ({ src: g.src, alt: g.alt }))
+      : [],
+    attachments: data.attachments ?? [],
+    tags: data.tags ?? [],
+  };
 
-        const imageUrl = data.image?.startsWith("/uploads")
-            ? `/api/uploads${data.image}`
-            : `${data.image || defaultImage}`;
-
-        const description = data.title || "ไม่มีคำอธิบายสำหรับกิจกรรมนี้";
-
-        const title = `${data.title} | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี`;
-
-        return {
-            title,
-            description,
-            keywords: [
-                data.title,
-                "กิจกรรม",
-                "ข่าวสาร",
-                "เทศบาล",
-                "นครนนท์",
-                "สาธารณสุข",
-                data.author?.department || "",
-            ],
-            alternates: {
-                canonical: canonicalUrl,
-            },
-            openGraph: {
-                title,
-                description,
-                url: canonicalUrl,
-                images: [{ url: imageUrl, width: 1200, height: 630 }],
-                siteName: "เว็บไซต์เทศบาลนครนนทบุรี",
-                type: "article",
-                locale: "th_TH",
-            },
-            twitter: {
-                card: "summary_large_image",
-                title,
-                description,
-                images: [imageUrl],
-            },
-        };
-    } catch (error) {
-        console.error("generateMetadata (activities) error:", error);
-        return {
-            title: "เกิดข้อผิดพลาด",
-            description: "ไม่สามารถโหลดข้อมูล metadata ได้",
-            alternates: { canonical: canonicalUrl },
-            keywords: ["กิจกรรม", "เทศบาล", "เกิดข้อผิดพลาด"],
-        };
-    }
+  return item;
 }
 
-const fetchActivity = async (id: string) => {
-    const baseURL =
-        process.env.NODE_ENV === "development"
-            ? "http://localhost:3000"
-            : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-    try {
-        const res = await fetch(`${baseURL}/api/activities/${id}`, {
-            next: { revalidate: 30 }
-        });
-        const data = await res.json()
-        const activities: ActivityItem = {
-            id: data.id,
-            title: data.title,
-            slug: data.slug,
-            image: data.image,
-            content: data.content || "ไม่มีคำอธิบาย",
-            author: {
-                firstname: data.author.firstname,
-                lastname: data.author.lastname,
-                department: data.author.department,
-                avatar: data.author.avatar,
-                email: data.author.email
-            },
-            createdAt: formatDateToThai(data.createdAt),
-        };
-        return activities;
-    } catch (error) {
-        console.log("Error fetching activities:", error);
-    }
+const pickOgImage = (item: ActivityType) => {
+  const first = item.gallery?.[0]?.src;
+  return first ? resolveUpload(first) : "/logo-nonthaburi.jpg";
 };
 
-const formatDateToThai = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("th-TH", {
-        year: "numeric",
-        month: "long", // "long" => มกราคม, "short" => ม.ค.
-        day: "numeric",
-    });
-};
+const stripHtml = (html: string) => html.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
 
-async function Page({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params;
-    const activity = await fetchActivity(id)
+// -------- metadata --------
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const item = await fetchActivity(id);
+  const canonical = `/activities/${id}`;
 
-    if (!activity) {
-        return notFound();
-    }
+  if (!item) {
+    return {
+      title: "ไม่พบข้อมูลกิจกรรม",
+      description: "กิจกรรมที่คุณค้นหาอาจถูกลบหรือไม่มีอยู่จริง",
+      alternates: { canonical },
+    };
+  }
 
-    const breadcrumbs = [
-        { label: "หน้าแรก", href: "/" },
-        { label: "ข้อมูลข่าวสาร", href: "/news/activities" },
-        { label: "กิจกรรมของสำนัก", href: "/news/activities" },
-        { label: activity.title, isCurrent: true },
-    ];
+  const desc =
+    stripHtml(item.content).slice(0, 160) ||
+    "กิจกรรมของสำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี";
+  const imageUrl = pickOgImage(item);
 
-    return (
-        <div>
-            <div className="px-10 py-5 xl:px-20 xl:py-10">
-                <Breadcrumbs items={breadcrumbs} />
-                <div className="mt-3">
-                    <h1 className="sm:text-3xl text-2xl font-bold">{activity.title}</h1>
-                    <div className="flex w-full flex-col border-opacity-50">
-                        <div className="divider"></div>
-                    </div>
-                </div>
-                <div className="flex items-center pb-5 max-w-[1480px] mx-auto">
-                    <AuthorInfo name={`${activity.author.firstname} ${activity.author.lastname}`} department={activity.author.department} date={activity.createdAt} image={activity.author.avatar} email={activity.author.email} />
-                    <div className="px-4">
-                        <ShareButton />
-                    </div>
-                </div>
-                <div className="editor-content prose prose-sm lg:prose-base max-w-[1440px] mx-auto">
-                    <div className="max-w-[1440px]" dangerouslySetInnerHTML={{ __html: activity.content }} />
-                </div>
-            </div>
-        </div>
-    )
+  return {
+    title: `${item.title} | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี`,
+    description: desc,
+    alternates: { canonical },
+    openGraph: {
+      title: `${item.title} | กิจกรรม`,
+      description: desc,
+      images: [{ url: imageUrl, width: 1200, height: 630 }],
+      url: canonical,
+      siteName: "สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
+      type: "article",
+      locale: "th_TH",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: item.title,
+      description: desc,
+      images: [imageUrl],
+    },
+  };
 }
 
-export default Page
+// -------- page --------
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const item = await fetchActivity(id);
+  if (!item) return notFound();
+
+  return (
+    <div className="mx-auto w-full max-w-screen-xl px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">หน้าแรก</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/activities">กิจกรรมของสำนัก</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage className="max-w-[50ch] truncate">{item.title}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <ActivityArticle item={item} />
+    </div>
+  );
+}

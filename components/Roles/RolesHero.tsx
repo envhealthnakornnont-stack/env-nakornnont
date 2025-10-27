@@ -33,7 +33,6 @@ export default function RolesHero({ d }: { d: RolesPageData }) {
                     )}
                 </div>
 
-
                 {/* KPIs */}
                 {d.kpis?.length ? (
                     <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-3">

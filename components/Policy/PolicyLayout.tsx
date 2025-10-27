@@ -2,18 +2,11 @@
 
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage, } from "@/components/ui/breadcrumb";
 
 type Props = {
   title: string;
-  updatedAt?: string; // YYYY-MM-DD
+  updatedAt?: string;
   children: React.ReactNode;
 };
 

@@ -1,37 +1,17 @@
-// src/lib/departments.ts
-export type DeptKey =
-  | "generalAffairs"
-  | "publicHealthPromotion"
-  | "environmentalHealthServices"
-  | "environmentalHealthPromotion";
+import { DepartmentConfig, DeptKey } from "./types";
 
-type LinkItem = { label: string; href: string };
-type DownloadItem = { name: string; href: string; size?: string; updatedAt?: string };
-type Contact = { name: string; role?: string; phone?: string; email?: string };
+export function buildTrail(title: string, slug: string) {
+  return [
+    { label: "หน้าแรก", href: "/" },
+    { label: title, href: `/departments/${slug}`, current: true },
+  ];
+}
 
-export type DepartmentConfig = {
-  key: DeptKey;
-  slug: string;
-  title: string;        // ชื่อหน้า
-  subtitle?: string;    // คำอธิบายสั้น
-  hero: {
-    image?: string;     // /images/dep-*.jpg (ถ้าไม่มีจะใช้พื้นหลัง gradient)
-    badge?: string;     // ป้าย เช่น “หน่วยงานภายใน”
-  };
-  seo: {
-    title: string;
-    description: string;
-    keywords: string[];
-    openGraphImage?: string;
-  };
-  kpis?: { label: string; value: string }[];   // ตัวเลขสรุปไว ๆ
-  missions: string[];                          // ภารกิจ/หน้าที่
-  services: { title: string; desc?: string; link?: string }[]; // บริการ/งานเด่น
-  highlights?: LinkItem[];                     // ข่าว/กิจกรรมเด่น
-  downloads?: DownloadItem[];                  // แบบฟอร์ม/ระเบียบ/คู่มือ
-  faqs?: { q: string; a: string }[];
-  contacts?: Contact[];
-};
+export function sectionId(id: string) {
+  return { id, className: "scroll-mt-28 md:scroll-mt-32" };
+}
+
+export const isEmpty = (v?: unknown[] | null) => !v || v.length === 0;
 
 export const departments: Record<DeptKey, DepartmentConfig> = {
   generalAffairs: {
@@ -40,7 +20,7 @@ export const departments: Record<DeptKey, DepartmentConfig> = {
     title: "ฝ่ายบริหารงานทั่วไป",
     subtitle:
       "ดูแลงานสารบรรณ ธุรการ พัสดุ การเงิน-บัญชี งบประมาณ และงานสนับสนุนภายในทั้งหมด",
-    hero: { image: "/images/dep-general.jpg", badge: "หน่วยงานภายใน" },
+    hero: { image: "/bg-hero.jpg", badge: "หน่วยงานภายใน" },
     seo: {
       title:
         "ฝ่ายบริหารงานทั่วไป | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
@@ -98,7 +78,7 @@ export const departments: Record<DeptKey, DepartmentConfig> = {
     title: "ส่วนส่งเสริมสาธารณสุข",
     subtitle:
       "ขับเคลื่อนนโยบายสุขภาพ งาน อสม. สุขศึกษา ผู้สูงอายุ และการประเมินผลสุขภาพชุมชน",
-    hero: { image: "/images/dep-php.jpg", badge: "สุขภาพชุมชน" },
+    hero: { image: "/bg-hero.jpg", badge: "สุขภาพชุมชน" },
     seo: {
       title:
         "ส่วนส่งเสริมสาธารณสุข | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
@@ -154,7 +134,7 @@ export const departments: Record<DeptKey, DepartmentConfig> = {
     title: "ส่วนบริการอนามัยสิ่งแวดล้อม",
     subtitle:
       "ดูแลความสะอาด เมืองน่าอยู่ จัดการมูลฝอย สิ่งปฏิกูล และระบบสุขาภิบาลพื้นที่",
-    hero: { image: "/images/dep-ehs.jpg", badge: "ปฏิบัติการภาคสนาม" },
+    hero: { image: "/bg-hero.jpg", badge: "ปฏิบัติการภาคสนาม" },
     seo: {
       title:
         "ส่วนบริการอนามัยสิ่งแวดล้อม | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
@@ -211,7 +191,7 @@ export const departments: Record<DeptKey, DepartmentConfig> = {
     title: "ส่วนส่งเสริมอนามัยสิ่งแวดล้อม",
     subtitle:
       "กำกับดูแลสุขาภิบาล คุ้มครองผู้บริโภค เฝ้าระวังมลพิษ และจัดการทรัพยากรธรรมชาติ",
-    hero: { image: "/images/dep-ehp.jpg", badge: "กำกับมาตรฐาน" },
+    hero: { image: "/bg-hero.jpg", badge: "กำกับมาตรฐาน" },
     seo: {
       title:
         "ส่วนส่งเสริมอนามัยสิ่งแวดล้อม | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
@@ -261,8 +241,3 @@ export const departments: Record<DeptKey, DepartmentConfig> = {
     ],
   },
 };
-
-export function getDepartmentBySlug(slug: string) {
-  const item = Object.values(departments).find((d) => d.slug === slug);
-  return item ?? null;
-}

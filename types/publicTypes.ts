@@ -114,8 +114,8 @@ export interface Personnel {
 export interface E_Service {
     id: string;
     title: string;
-    image: string;
     linkURL: string;
+    image: string | null;
     createdAt: string;
     updatedAt: string;
 }

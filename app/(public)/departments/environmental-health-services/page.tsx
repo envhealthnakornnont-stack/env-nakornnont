@@ -1,6 +1,6 @@
-import DepartmentPage from "@/components/Departments/DepartmentPage";
+import DepartmentView from "@/components/Departments/DepartmentView";
+import { departments } from "@/components/Departments/utils";
 import EnvironmentalHealthServicesSection from "@/features/users/components/Departments/EnvironmentalHealthServicesSection";
-import { departments } from "@/lib/departments";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const page = () => {
-  return <DepartmentPage dept="environmentalHealthServices" />;
+  return <DepartmentView dept="environmentalHealthServices" />;
 }
 
 export default page

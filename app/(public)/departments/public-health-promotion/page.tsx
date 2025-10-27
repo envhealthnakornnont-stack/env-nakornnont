@@ -1,7 +1,7 @@
 import PublicHealthPromotionSection from "@/features/users/components/Departments/PublicHealthPromotionSection";
 import type { Metadata } from "next";
-import { departments } from "@/lib/departments";
-import DepartmentPage from "@/components/Departments/DepartmentPage";
+import DepartmentView from "@/components/Departments/DepartmentView";
+import { departments } from "@/components/Departments/utils";
 
 export const metadata: Metadata = {
   title: departments.publicHealthPromotion.seo.title,
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const page = () => {
-  return <DepartmentPage dept="publicHealthPromotion" />;
+  return <DepartmentView dept="publicHealthPromotion" />;
 }
 
 export default page

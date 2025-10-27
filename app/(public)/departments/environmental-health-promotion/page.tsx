@@ -1,6 +1,6 @@
-import DepartmentPage from "@/components/Departments/DepartmentPage";
+import DepartmentView from "@/components/Departments/DepartmentView";
+import { departments } from "@/components/Departments/utils";
 import EnvironmentalHealthPromotionSection from "@/features/users/components/Departments/EnvironmentalHealthPromotionSection";
-import { departments } from "@/lib/departments";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -26,5 +26,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <DepartmentPage dept="environmentalHealthPromotion" />;
+  return <DepartmentView dept="environmentalHealthPromotion" />;
 }

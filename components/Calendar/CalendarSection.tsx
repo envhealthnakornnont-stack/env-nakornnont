@@ -1,4 +1,3 @@
-// features/users/components/Calendar/CalendarSection.tsx
 import { cn } from "@/lib/utils";
 import CalendarShell from "./CalendarShell";
 import UpcomingFromICS from "./UpcomingFromICS";

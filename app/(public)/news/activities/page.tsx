@@ -1,4 +1,4 @@
-import News from "@/features/users/components/News/News"
+import NewsGrid from "@/components/News/NewsGrid";
 import { ActivitiesItems } from "@/types/publicTypes";
 
 export const metadata = {
@@ -57,6 +57,7 @@ const fetchActivities = async () => {
                 department: item.author.department,
             },
             createdAt: formatDateToThai(item.createdAt),
+            createdAtISO: item.createdAt
         }));
         return activities;
     } catch (error) {
@@ -69,7 +70,7 @@ const formatDateToThai = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleDateString("th-TH", {
         year: "numeric",
-        month: "long", // "long" => มกราคม, "short" => ม.ค.
+        month: "long",
         day: "numeric",
     });
 };
@@ -77,15 +78,7 @@ const formatDateToThai = (dateString: string): string => {
 const page = async () => {
     const activitiesData = await fetchActivities();
     return (
-        <News
-            newsData={activitiesData}
-            title="กิจกรรมของสำนัก"
-            itemsPerPage={6}
-            showPagination={true}
-            showViewAll={false}
-            showBreadcrumbs={true}
-            cardType="type2"
-        />
+        <NewsGrid mode="index" type="activities" title="กิจกรรมของสำนัก" items={activitiesData} basePath="/news/activities" defaultPerPage={12} />
     )
 }
 
