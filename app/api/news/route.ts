@@ -5,59 +5,69 @@ import { authOptions } from "@/lib/authOptions";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession({ req, ...authOptions });
     const userId = session ? Number(session.user.id) : null;
     const role = session?.user.role?.toUpperCase() || null;
 
     const url = new URL(req.url);
-    const q = url.searchParams.get("q")?.trim();
-    const tag = url.searchParams.get("tag")?.trim();
-    const statusParam = url.searchParams.get("status")?.toUpperCase() || "PUBLISHED";
+    const q = (url.searchParams.get("q") || "").trim();
+    const tag = (url.searchParams.get("tag") || "").trim();
+    const statusParam = (url.searchParams.get("status") || "").toUpperCase(); // ← เปล่าเป็นดีฟอลต์
     const page = Math.max(1, Number(url.searchParams.get("page") || 1));
     const pageSize = Math.min(50, Math.max(1, Number(url.searchParams.get("pageSize") || 12)));
-    const sort = url.searchParams.get("sort") || "latest";
+    const sort = url.searchParams.get("sort") || "latest"; // latest|oldest|published
 
-    const whereBase: any = {};
-    // การมองเห็นตามสิทธิ์
+    // 1) เงื่อนไขการมองเห็น (visibility)
+    let visibilityWhere: any = {};
     if (!session) {
-      whereBase.status = "PUBLISHED";
-      whereBase.publishedAt = { lte: new Date() };
+      visibilityWhere = {
+        status: "PUBLISHED",
+        publishedAt: { lte: new Date() },
+      };
     } else if (role === "SUPERUSER") {
-      // no filter
+      visibilityWhere = {};
     } else {
-      // USER: ของตัวเองทั้งหมด + ของสาธารณะ
-      whereBase.OR = [
-        { authorId: userId },
-        { status: "PUBLISHED", publishedAt: { lte: new Date() } },
-      ];
+      visibilityWhere = {
+        OR: [
+          { authorId: userId },
+          { status: "PUBLISHED", publishedAt: { lte: new Date() } },
+        ],
+      };
     }
 
-    // ฟิลเตอร์สถานะถ้าส่งมา (admin view)
+    // 2) ฟิลเตอร์อื่น ๆ (จะ AND กับ visibility)
+    const filters: any[] = [];
+
     if (session && role === "SUPERUSER" && statusParam) {
-      whereBase.status = statusParam;
-    }
-
-    if (q) {
-      whereBase.OR = [
-        ...(whereBase.OR ?? []),
-        { title: { contains: q } },
-        { description: { contains: q } },
-        { contentHtml: { contains: q } },
-      ];
+      filters.push({ status: statusParam });
     }
 
     if (tag) {
-      whereBase.tags = { some: { slug: tag } };
+      filters.push({ tags: { some: { slug: tag } } });
     }
 
+    if (q) {
+      filters.push({
+        OR: [
+          { title: { contains: q, mode: "insensitive" } },
+          { description: { contains: q, mode: "insensitive" } },
+          { contentHtml: { contains: q, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    const where = filters.length ? { AND: [visibilityWhere, ...filters] } : visibilityWhere;
+
     const orderBy =
-      sort === "oldest" ? { createdAt: "asc" as const } :
-        sort === "latest" ? { createdAt: "desc" as const } :
-          { createdAt: "desc" as const };
+      sort === "oldest"
+        ? { createdAt: "asc" as const }
+        : sort === "published"
+          ? { publishedAt: "desc" as const }
+          : { createdAt: "desc" as const };
 
     const [items, total] = await Promise.all([
       prisma.news.findMany({
-        where: whereBase,
+        where,
         include: {
           author: { select: { firstname: true, lastname: true, department: true } },
           tags: { select: { name: true, slug: true } },
@@ -66,7 +76,7 @@ export async function GET(req: NextRequest) {
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      prisma.news.count({ where: whereBase }),
+      prisma.news.count({ where }),
     ]);
 
     return NextResponse.json({ items, total, page, pageSize }, { status: 200 });

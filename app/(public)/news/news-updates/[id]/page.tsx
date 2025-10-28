@@ -1,50 +1,29 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { resolveImage, stripHtml } from "@/components/News/Content/NewsArticle/utils";
-import { NewsArticle } from "@/components/News/Content/NewsArticle/types";
-import NewsArticleView from "@/components/News/Content/NewsArticle/NewsArticle";
+import NewsArticleModern from "@/components/News/Content/NewsArticle/NewsArticle";
+import type { NewsArticle } from "@/components/News/Content/NewsArticle/types";
+import { adaptApiNewsToArticle, resolveImagePath } from "@/components/News/Content/NewsArticle/apiToArticleAdapter";
+import { resolveImage } from "@/components/News/Content/NewsArticle/utils";
+import { fetchRelatedNews } from "@/components/News/Content/shared/related/api";
+
+// --- baseURL helper ---
+const baseURL =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:3000"
+    : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 async function fetchNews(id: string): Promise<NewsArticle | null> {
-  const base =
-    process.env.NODE_ENV === "development"
-      ? "http://localhost:3000"
-      : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-
-  const res = await fetch(`${base}/api/news/${id}`, { next: { revalidate: 30 } });
+  const res = await fetch(`${baseURL}/api/news/${id}`, { next: { revalidate: 30 } });
   if (!res.ok) return null;
-  const data = await res.json();
-
-  return {
-    id: data.id,
-    title: data.title,
-    slug: data.slug,
-    image: data.image,
-    description: stripHtml(data.description || data.content)?.slice(0, 160),
-    content: data.content || "",
-    tags: data.tags ?? [],
-    createdAt: data.createdAt,
-    author: {
-      firstname: data.author?.firstname ?? "",
-      lastname: data.author?.lastname ?? "",
-      department: data.author?.department ?? null,
-      avatar: data.author?.avatar ?? null,
-      email: data.author?.email ?? null,
-    },
-    attachments: data.attachments ?? [],
-  };
+  const payload = await res.json();
+  const apiItem = payload.item ?? payload; // เผื่อบางสภาพแวดล้อมคืน { item } ตามโค้ด API ของคุณ
+  if (!apiItem) return null;
+  return adaptApiNewsToArticle(apiItem);
 }
 
-export async function generateMetadata({
-  params,
-}: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata(
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Metadata> {
   const { id } = await params;
   const article = await fetchNews(id);
   const canonical = `/news/news-updates/${id}`;
@@ -56,8 +35,17 @@ export async function generateMetadata({
       alternates: { canonical },
     };
   }
-  const imageUrl = resolveImage(article.image);
-  const desc = article.description || "ข่าวประชาสัมพันธ์ สำนักสาธารณสุขและสิ่งแวดล้อม";
+
+  // ใช้ภาพจาก hero / image ของข่าว
+  const imageUrl =
+    resolveImage(article.hero?.src) || resolveImagePath(null) || "/logo-nonthaburi.jpg";
+  const desc =
+    article.contentHtml
+      ?.replace(/<[^>]*>?/gm, " ")
+      ?.replace(/\s+/g, " ")
+      ?.trim()
+      ?.slice(0, 160) ||
+    "ข่าวประชาสัมพันธ์ สำนักสาธารณสุขและสิ่งแวดล้อม";
 
   return {
     title: `${article.title} | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี`,
@@ -86,25 +74,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const article = await fetchNews(id);
   if (!article) return notFound();
 
-  return (
-    <div className="mx-auto w-full max-w-screen-xl px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">หน้าแรก</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/news/news-updates">ข่าวประชาสัมพันธ์</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage className="max-w-[50ch] truncate">{article.title}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+  const related = await fetchRelatedNews(article.id, article.tags ?? [], 3);
 
-      <NewsArticleView article={article} />
+  return (
+    <div className="py-6 lg:py-8">
+      <NewsArticleModern item={article} related={related}/>
     </div>
   );
 }

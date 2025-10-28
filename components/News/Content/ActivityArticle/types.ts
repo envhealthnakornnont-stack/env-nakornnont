@@ -1,11 +1,21 @@
-export type ActivityArticle = {
+export type ActivityAuthor = {
+  name: string;
+  email?: string | null;
+  department?: string | null;
+  avatar?: string | null;
+};
+
+export type Activity = {
   id: string | number;
   title: string;
-  content: string;            // HTML
-  createdAt: string;          // ISO
+  createdAt: string;              // ISO
   location?: string | null;
-  organizer?: string | null;  // แผนก/หน่วยงาน
+  organizer?: string | null;
   gallery?: { src: string; alt?: string }[];
-  attachments?: { label: string; url: string }[];
+  contentHtml: string;
   tags?: string[];
+  attachments?: { label: string; url: string }[];
+
+  // ✅ เพิ่มผู้เขียน
+  author?: ActivityAuthor | null;
 };
