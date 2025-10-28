@@ -1,216 +1,150 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import fs from "fs";
-import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { JSDOM } from "jsdom";
+import path from "path";
+import { saveBufferUnder, toRealPath, rmFileIfExists } from "@/lib/uploads";
+import { connectOrCreateTags } from "@/lib/tags";
 
-// Helper function สำหรับบันทึกไฟล์ลงในโฟลเดอร์ที่กำหนดภายใต้ public/uploads/news
-async function saveFileBuffer(buffer: Buffer, folderPath: string, filename: string): Promise<string> {
-  const uploadsDir = path.join(process.cwd(), "uploads", "news", folderPath);
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-  const filePath = path.join(uploadsDir, filename);
-  fs.writeFileSync(filePath, buffer);
-  return `/uploads/news/${folderPath}/${filename}`;
-}
-
-// Helper function เพื่อลบไฟล์จากระบบไฟล์
-function deleteFile(fileUrl: string) {
-  const filePath = path.join(process.cwd(), fileUrl);
-  if (fs.existsSync(filePath)) {
-    try {
-      fs.unlinkSync(filePath);
-      console.log(`Deleted file: ${filePath}`);
-    } catch (err) {
-      console.error(`Failed to delete file ${filePath}:`, err);
-    }
-  }
-}
-
-function mapUrlToRealPath(url: string): string | null {
-  const prefix = "/api/uploads/";
-  if (url.startsWith(prefix)) {
-    const relative = url.replace(prefix, ""); 
-    return path.join(process.cwd(), "uploads", relative.replace(/^uploads\//, ""));
-  }
-  return null;
-}
-
-// Helper function สำหรับดึง src ของ <img> จาก HTML
-function extractImageSrcs(html: string): string[] {
+/** ดึง src ทั้งหมดของรูปที่เสิร์ฟผ่าน /api/uploads/... จาก HTML */
+function extractApiUploadSrcs(html: string | null | undefined) {
+  if (!html) return [] as string[];
   const dom = new JSDOM(html);
-  const document = dom.window.document;
-  const imgElements = document.querySelectorAll("img");
-  const srcs: string[] = [];
-  imgElements.forEach((img) => {
-    const src = img.getAttribute("src");
-    if (src && src.startsWith("/api/uploads/")) {
-      srcs.push(src);
-    }
-  });
-  console.log("รูป",srcs);
-  return srcs;
+  return Array.from(dom.window.document.querySelectorAll("img"))
+    .map((img) => img.getAttribute("src") || "")
+    .filter((src) => src.startsWith("/api/uploads/"));
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+/** แทนที่ <img src="data:..."> → อัปโหลดไฟล์ แล้วแทนเป็น /api/uploads/... */
+async function materializeBase64Images(html: string, baseFolder: string) {
+  const dom = new JSDOM(html);
+  const doc = dom.window.document;
+  const imgs = Array.from(doc.querySelectorAll("img"));
+  for (const img of imgs) {
+    const src = img.getAttribute("src") || "";
+    if (!src.startsWith("data:")) continue;
+    const [meta, b64] = src.split(",");
+    const mime = meta.match(/^data:(.*?);base64$/)?.[1] || "image/png";
+    const ext =
+      mime === "image/jpeg" ? "jpg" :
+        mime === "image/gif" ? "gif" :
+          mime === "image/webp" ? "webp" : "png";
+    const filename = `${Date.now()}-${uuidv4()}.${ext}`;
+    const buf = Buffer.from(b64, "base64");
+    const url = await saveBufferUnder(buf, ["news", baseFolder, "content"], filename);
+    img.setAttribute("src", `/api/uploads${url}`);
+  }
+  return doc.body.innerHTML;
+}
+
+/** เดา newsFolder จาก URL ปก /uploads/news/<folder>/cover/... */
+function inferNewsFolderFromCover(url: string | null | undefined) {
+  if (!url) return "";
+  const parts = url.split("/").filter(Boolean);
+  // ['', 'uploads', 'news', '<folder>', 'cover', 'file']
+  const idx = parts.findIndex((p) => p === "news");
+  if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+  return "";
+}
+
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // ดึง session โดยส่ง req เข้าไปด้วย
-    const session = await getServerSession({ req, ...authOptions });
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    // รับข้อมูลจาก FormData
+    const id = params.id;
     const form = await req.formData();
-    const { id } = await params
-    const title = form.get("title") as string;
-    const description = form.get("detail") as string;
-    let htmlContent = form.get("htmlContent") as string;
-    const authorIdStr = form.get("authorId") as string;
-    const coverImageFile = form.get("coverImage") as File | null;
 
-    // Validate fields
-    if (!id || !title) {
-      return NextResponse.json({ error: "ID and title are required" }, { status: 400 });
-    }
-    if (title.trim() === "") {
-      return NextResponse.json({ error: "Title cannot be empty" }, { status: 400 });
-    }
-    if (description.trim() === "") {
-      return NextResponse.json({ error: "Description cannot be empty" }, { status: 400 });
-    }
-    const strippedContent = htmlContent.replace(/<[^>]+>/g, "").trim();
-    const hasImage = /<img\s+[^>]*src=["'][^"']+["'][^>]*>/i.test(htmlContent);
-    if (!strippedContent && !hasImage) {
-      return NextResponse.json({ error: "Content cannot be empty" }, { status: 400 });
-    }
-    const authorId = Number(authorIdStr);
-    if (isNaN(authorId)) {
-      return NextResponse.json({ error: "Invalid authorId" }, { status: 400 });
-    }
-    if (coverImageFile && coverImageFile.size > 0 && !coverImageFile.type.startsWith("image/")) {
-      return NextResponse.json({ error: "Cover image must be an image file" }, { status: 400 });
+    const title = String(form.get("title") || "");
+    const description = String(form.get("description") || "");
+    let contentHtml = String(form.get("contentHtml") || "");
+    const status = String(form.get("status") || "PUBLISHED").toUpperCase() as "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    const publishedAtStr = form.get("publishedAt") as string | null;
+    const coverImage = form.get("coverImage") as File | null;
+    const heroCredit = form.get("heroCredit") ? String(form.get("heroCredit")) : null;
+
+    const tagsJson = (form.get("tags") as string | null) ?? null;                 // '["PM2.5","สิ่งแวดล้อม"]'
+    const attachmentsJson = (form.get("attachments") as string | null) ?? null;   // '[{label,url}]'
+
+    if (!title.trim()) return NextResponse.json({ error: "title required" }, { status: 400 });
+    if (!description.trim()) return NextResponse.json({ error: "description required" }, { status: 400 });
+
+    const existing = await prisma.news.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    // สิทธิ์: SUPERUSER แก้ได้ทั้งหมด; USER ได้เฉพาะของตนหรือของสาธารณะตนเองสร้าง
+    const role = session.user.role?.toUpperCase();
+    if (role !== "SUPERUSER" && existing.authorId !== Number(session.user.id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // ดึงข้อมูล news เดิมจากฐานข้อมูล
-    const existingNews = await prisma.news.findUnique({
-      where: { id },
-    });
-    if (!existingNews) {
-      return NextResponse.json({ error: "News not found" }, { status: 404 });
-    }
-    // ตรวจสอบสิทธิ์: SUPERUSER แก้ไขได้ทุก news; USER แก้ไขได้เฉพาะ news ที่ตนเองสร้าง
-    if (session.user.role.toUpperCase() !== "SUPERUSER") {
-      if (existingNews.authorId !== Number(session.user.id)) {
-        return NextResponse.json({ error: "Permission denied" }, { status: 403 });
+    // หาโฟลเดอร์สำหรับคอนเทนต์
+    let newsFolder = inferNewsFolderFromCover(existing.image) || uuidv4();
+
+    // บันทึกรูปปกใหม่ (ถ้ามี) และลบปกเก่า
+    let coverUrl = existing.image || null;
+    if (coverImage && coverImage.size > 0) {
+      if (!coverImage.type.startsWith("image/")) {
+        return NextResponse.json({ error: "Cover must be image file" }, { status: 400 });
       }
+      if (!newsFolder) newsFolder = uuidv4();
+      // ลบของเก่า (ถ้ามี)
+      if (existing.image) {
+        const absOld = path.join(process.cwd(), existing.image);
+        rmFileIfExists(absOld);
+      }
+      const filename = `${Date.now()}-${coverImage.name}`;
+      const buf = Buffer.from(await coverImage.arrayBuffer());
+      coverUrl = await saveBufferUnder(buf, ["news", newsFolder, "cover"], filename);
     }
 
-    // Process cover image (ถ้ามีไฟล์ใหม่)
-    let coverImageUrl = existingNews.image;
-    if (coverImageFile && coverImageFile.size > 0) {
-      // ถ้ามีไฟล์ใหม่ให้ลบ cover image เก่าที่มีอยู่
-      if (existingNews.image) {
-        deleteFile(existingNews.image);
-      }
-      let newsFolder = "";
-      if (existingNews.image) {
-        const parts = existingNews.image.split("/");
-        if (parts.length >= 4) {
-          newsFolder = parts[3];
-        }
-      }
-      if (!newsFolder) {
-        newsFolder = uuidv4();
-      }
-      const filename = `${Date.now()}-${coverImageFile.name}`;
-      const buffer = Buffer.from(await coverImageFile.arrayBuffer());
-      coverImageUrl = await saveFileBuffer(buffer, `${newsFolder}/cover`, filename);
+    // เตรียม diff รูปฝังใน HTML: เก่า vs ใหม่
+    const oldSrcs = extractApiUploadSrcs(existing.contentHtml ?? null);
+    // materialize base64 → อัปโหลด + แทนที่ src
+    if (contentHtml) {
+      contentHtml = await materializeBase64Images(contentHtml, newsFolder);
+    }
+    const newSrcs = extractApiUploadSrcs(contentHtml);
+
+    // ลบไฟล์ orphan: อยู่ในของเก่าแต่ไม่อยู่ในของใหม่
+    const toDelete = oldSrcs.filter((s) => !newSrcs.includes(s));
+    for (const s of toDelete) {
+      const abs = toRealPath(s);
+      if (abs) rmFileIfExists(abs);
     }
 
-    // ดึงรายชื่อรูปใน description เดิม (old HTML)
-    const oldHtml =
-      typeof existingNews.content === "string"
-        ? existingNews.content
-        : JSON.stringify(existingNews.content || "");
-    const oldImageSrcs = extractImageSrcs(oldHtml);
+    // parse JSONs
+    let tagsArr: string[] = [];
+    if (tagsJson) try { tagsArr = JSON.parse(tagsJson); } catch { }
+    let attachments: any = undefined;
+    if (attachmentsJson) try { attachments = JSON.parse(attachmentsJson); } catch { }
 
-    // Process embedded images in new htmlContent:
-    //  - แปลง <img> ที่มี src เป็น base64 ให้เป็น URL โดยบันทึกไฟล์ใน subfolder "content"
-    let newsFolder = "";
-    if (existingNews.image) {
-      const parts = existingNews.image.split("/");
-      if (parts.length >= 4) {
-        newsFolder = parts[3];
-      }
-    }
-    if (!newsFolder) {
-      newsFolder = uuidv4();
-    }
-    const dom = new JSDOM(htmlContent);
-    const document = dom.window.document;
-    const imgElements = document.querySelectorAll("img");
-    for (const img of Array.from(imgElements)) {
-      const src = img.getAttribute("src");
-      if (src && src.startsWith("data:")) {
-        const base64Data = src.split(",")[1];
-        const mimeMatch = src.match(/^data:(.*?);base64,/);
-        let ext = "png";
-        if (mimeMatch && mimeMatch[1]) {
-          const mime = mimeMatch[1];
-          if (mime === "image/jpeg") ext = "jpg";
-          else if (mime === "image/png") ext = "png";
-          else if (mime === "image/gif") ext = "gif";
-        }
-        const filename = `${Date.now()}-${uuidv4()}.${ext}`;
-        const buffer = Buffer.from(base64Data, "base64");
-        const imageUrl = await saveFileBuffer(buffer, `${newsFolder}/content`, filename);
-        img.setAttribute("src", `/api/uploads${imageUrl}`);
-      }
-    }
-    // ปรับปรุง htmlContent หลังจากประมวลผล embedded images
-    htmlContent = document.body.innerHTML;
-
-    // ดึงรายชื่อรูปใน description ใหม่
-    const newImageSrcs = extractImageSrcs(htmlContent);
-
-    // คำนวณความแตกต่าง: รูปที่มีใน oldImageSrcs แต่ไม่อยู่ใน newImageSrcs (ไฟล์ที่ถูกลบออกโดยผู้ใช้)
-    const filesToDelete = oldImageSrcs.filter(src => !newImageSrcs.includes(src));
-    filesToDelete.forEach((src) => {
-      const realPath = mapUrlToRealPath(src);
-      if (realPath && fs.existsSync(realPath)) {
-        try {
-          fs.unlinkSync(realPath);
-          console.log(`🗑️ Deleted: ${realPath}`);
-        } catch (err) {
-          console.error("❌ Failed to delete:", err);
-        }
-      }
-    });
-
-    // Prepare update data (ใช้ htmlContent ที่ประมวลผลแล้วเป็น description)
-    const updateData = {
+    const updateData: any = {
       title,
       description,
-      content: htmlContent ? htmlContent : undefined,
-      image: coverImageUrl,
+      contentHtml: contentHtml || null,
+      image: coverUrl,
+      heroCredit,
+      status,
+      publishedAt: publishedAtStr ? new Date(publishedAtStr) : existing.publishedAt,
+      attachments,
+      // tags: set + connect
+      tags: {
+        set: [],
+        ...(await connectOrCreateTags(tagsArr)),
+      },
     };
 
-    const updatedNews = await prisma.news.update({
+    const item = await prisma.news.update({
       where: { id },
       data: updateData,
+      include: { tags: true },
     });
 
-    return NextResponse.json(updatedNews, { status: 200 });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { error: "Failed to update news", message: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
-    );
+    return NextResponse.json({ item }, { status: 200 });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }

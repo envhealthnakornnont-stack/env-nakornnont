@@ -34,29 +34,65 @@ enum Role {
   SUPERUSER
 }
 
+// --- News and Activity ---
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Tag {
+  id    String   @id @default(uuid())
+  name  String   @db.VarChar(64)
+  slug  String   @unique @db.VarChar(96)
+  news  News[]   @relation("NewsTags")
+  acts  Activity[] @relation("ActivityTags")
+
+  @@index([slug])
+}
+
 model Activity {
-  id          String   @id @default(uuid())
-  title       String
-  slug        String   @unique @db.VarChar(255) // Slug เพื่อให้ URL อ่านง่าย
-  content Json? // เปลี่ยนเป็น Json เพื่อเก็บ Quill Delta
-  author      User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  authorId    Int?
-  image       String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id    String @id @default(uuid())
+  title String
+  slug  String @unique @db.VarChar(255)
+  contentHtml String? @db.MediumText
+  location    String? @db.VarChar(255)
+  organizer   String? @db.VarChar(120)
+  gallery     Json?
+  attachments Json?
+  author         User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId       Int?
+  authorSnapshot Json?
+  image       String?
+  status      PublishStatus @default(PUBLISHED)
+  eventDate   DateTime?
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  tags Tag[] @relation("ActivityTags")
+  @@index([status, publishedAt])
+  @@index([createdAt])
 }
 
 model News {
-  id          String   @id @default(uuid())
-  title       String
-  slug        String   @unique @db.VarChar(255) // Slug เพื่อให้ URL อ่านง่าย
-  description String   @db.VarChar(255)
-  content     Json?
-  author      User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  authorId    Int?
-  image       String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String        @id @default(uuid())
+  title         String
+  slug          String        @unique @db.VarChar(255)
+  description   String        @db.VarChar(255)
+  contentHtml   String?       @db.MediumText
+  author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId      Int?
+  authorSnapshot Json?
+  image         String?
+  heroCredit    String?       @db.VarChar(120)
+  status        PublishStatus @default(PUBLISHED)
+  publishedAt   DateTime? 
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  attachments   Json?
+  tags          Tag[]         @relation("NewsTags")
+  @@index([status, publishedAt])
+  @@index([createdAt])
 }
 
 model AgencyPersonnel {
@@ -84,20 +120,19 @@ model BannerImage {
 }
 
 model CarouselImage {
-  id            String   @id @default(uuid())
-  title         String
-  href          String
-  imageMobile   String   // URL ไฟล์ภาพ Mobile
-  imageDesktop  String   // URL ไฟล์ภาพ Desktop
-  badge         String?  // เช่น "ประกาศ" | "ข่าวด่วน"
-  priority      Int       @default(1) // ค่ามาก = เด่นกว่า
-  isActive      Boolean   @default(true)
-  publishedAt   DateTime  @default(now())
-  sortOrder     Int       @default(1) // ลำดับแสดงภายในชุดเดียวกัน
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String   @id @default(uuid())
+  title        String
+  href         String
+  imageMobile  String // URL ไฟล์ภาพ Mobile
+  imageDesktop String // URL ไฟล์ภาพ Desktop
+  badge        String? // เช่น "ประกาศ" | "ข่าวด่วน"
+  priority     Int      @default(1) // ค่ามาก = เด่นกว่า
+  isActive     Boolean  @default(true)
+  publishedAt  DateTime @default(now())
+  sortOrder    Int      @default(1) // ลำดับแสดงภายในชุดเดียวกัน
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
-
 
 model EService {
   id        String   @id @default(uuid())

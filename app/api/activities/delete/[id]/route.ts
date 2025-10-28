@@ -1,109 +1,62 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import fs from "fs";
 import path from "path";
+import fs from "fs";
+import { toRealPath } from "@/lib/uploads";
 import { JSDOM } from "jsdom";
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+function extractApiUploadSrcs(html: string | null | undefined) {
+  if (!html) return [] as string[];
+  const dom = new JSDOM(html);
+  return Array.from(dom.window.document.querySelectorAll("img"))
+    .map((img) => img.getAttribute("src") || "")
+    .filter((src) => src.startsWith("/api/uploads/"));
+}
+
+function inferActivityFolderFromCover(url: string | null | undefined) {
+  if (!url) return "";
+  const parts = url.split("/").filter(Boolean);
+  const idx = parts.findIndex((p) => p === "activities");
+  if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+  return "";
+}
+
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // ดึง session พร้อมกับ req
-    const session = await getServerSession({ req, ...authOptions });
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
-    if (!id) {
-      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    const existing = await prisma.activity.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    const role = session.user.role?.toUpperCase();
+    if (role !== "SUPERUSER" && existing.authorId !== Number(session.user.id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // ดึงข้อมูล activity ที่จะลบออกมาก่อน
-    const activity = await prisma.activity.findUnique({
-      where: { id },
-    });
-    if (!activity) {
-      return NextResponse.json({ error: "Activity not found" }, { status: 404 });
-    }
+    const deleted = await prisma.activity.delete({ where: { id } });
 
-    // ตรวจสอบสิทธิ์: SUPERUSER สามารถลบได้ทุก activity
-    // ส่วน USER สามารถลบได้เฉพาะ activity ที่ตนเองสร้าง
-    if (session.user.role.toUpperCase() !== "SUPERUSER") {
-      if (activity.authorId !== Number(session.user.id)) {
-        return NextResponse.json({ error: "คุณไม่มีสิทธิ์ลบกิจกรรมนี้" }, { status: 403 });
-      }
-    }
-
-    // ลบ activity จากฐานข้อมูล
-    const deletedActivity = await prisma.activity.delete({
-      where: { id },
-    });
-
-    // สกัดชื่อโฟลเดอร์ activityFolder จาก URL
-    let activityFolder = "";
-    if (deletedActivity.image) {
-      // สมมุติว่า URL รูปปกมีรูปแบบ:
-      // /uploads/activities/<activityFolder>/cover/filename
-      const parts = deletedActivity.image.split("/");
-      if (parts.length >= 4) {
-        activityFolder = parts[3]; // index 3 คือชื่อโฟลเดอร์สุ่มสำหรับ activity
-      }
-    } else if (deletedActivity.content && typeof deletedActivity.content === "string") {
-      // ถ้าไม่มี cover image ให้ลองสกัดจาก <img> ใน description
-      const dom = new JSDOM(deletedActivity.content);
-      const document = dom.window.document;
-      const img = document.querySelector("img");
-      if (img) {
-        const src = img.getAttribute("src");
-        if (src) {
-          const parts = src.split("/");
-          if (parts.length >= 4) {
-            activityFolder = parts[3];
-          }
-        }
-      }
-    }
-
-    // ลบโฟลเดอร์ activityFolder หากได้ระบุไว้
-    if (activityFolder) {
-      const folderPath = path.join(process.cwd(), "uploads", "activities", activityFolder);
-      if (fs.existsSync(folderPath)) {
-        try {
-          fs.rmSync(folderPath, { recursive: true, force: true });
-          console.log(`Deleted folder: ${folderPath}`);
-        } catch (err) {
-          console.error(`Failed to delete folder ${folderPath}:`, err);
-        }
+    const folder = inferActivityFolderFromCover(deleted.image);
+    if (folder) {
+      const absFolder = path.join(process.cwd(), "uploads", "activities", folder);
+      if (fs.existsSync(absFolder)) {
+        try { fs.rmSync(absFolder, { recursive: true, force: true }); } catch { }
       }
     } else {
-      // กรณีที่ไม่สามารถสกัดชื่อโฟลเดอร์ได้ ให้ลองลบไฟล์ใน description ทีละไฟล์
-      if (deletedActivity.content && typeof deletedActivity.content === "string") {
-        const dom = new JSDOM(deletedActivity.content);
-        const document = dom.window.document;
-        const imgElements = document.querySelectorAll("img");
-        imgElements.forEach((img) => {
-          const src = img.getAttribute("src");
-          if (src && src.startsWith("/uploads/activities/")) {
-            const filePath = path.join(process.cwd(), src);
-            if (fs.existsSync(filePath)) {
-              try {
-                fs.unlinkSync(filePath);
-              } catch (err) {
-                console.error(`Failed to delete file ${filePath}:`, err);
-              }
-            }
-          }
-        });
+      const srcs = extractApiUploadSrcs(deleted.contentHtml ?? null);
+      for (const s of srcs) {
+        const abs = toRealPath(s);
+        if (abs && fs.existsSync(abs)) {
+          try { fs.unlinkSync(abs); } catch { }
+        }
       }
     }
 
-    return NextResponse.json(
-      { message: "Activity deleted successfully", activity: deletedActivity },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Failed to delete activity" }, { status: 500 });
+    return NextResponse.json({ message: "Deleted", item: deleted }, { status: 200 });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }

@@ -1,119 +1,101 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import slugify from "slugify";
-import { v4 as uuidv4 } from "uuid";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import fs from "fs";
-import path from "path";
+import { v4 as uuidv4 } from "uuid";
 import { JSDOM } from "jsdom";
-
-// Helper function สำหรับบันทึกไฟล์ลงในโฟลเดอร์ที่กำหนดภายใต้ public/uploads/news
-async function saveFileBuffer(
-  buffer: Buffer,
-  folderPath: string,
-  filename: string
-): Promise<string> {
-  const uploadsDir = path.join(process.cwd(), "uploads", "news", folderPath);
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-  const filePath = path.join(uploadsDir, filename);
-  fs.writeFileSync(filePath, buffer);
-  return `/uploads/news/${folderPath}/${filename}`;
-}
+import { makeSlugFromTitle } from "@/lib/slug";
+import { connectOrCreateTags } from "@/lib/tags";
+import { saveBufferUnder } from "@/lib/uploads";
 
 export async function POST(req: NextRequest) {
   try {
-    // ตรวจสอบสิทธิ์ผู้ใช้
-    const session = await getServerSession({ req, ...authOptions });
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (!["USER", "SUPERUSER"].includes(session.user.role)) {
-      return NextResponse.json({ error: "Forbidden: Insufficient permissions" }, { status: 403 });
-    }
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    // รับข้อมูลจาก FormData
     const form = await req.formData();
-    const title = form.get("title") as string;
-    const description = form.get("detail") as string;
-    const htmlContent = form.get("htmlContent") as string; // HTML content จาก editor
-    const authorIdStr = form.get("authorId") as string;
-    const coverImageFile = form.get("coverImage") as File;
+    const title = String(form.get("title") || "");
+    const description = String(form.get("description") || "");
+    let contentHtml = String(form.get("contentHtml") || "");
+    const authorId = Number(form.get("authorId") || session.user.id);
+    const coverImage = form.get("coverImage") as File | null;
+    const heroCredit = form.get("heroCredit") ? String(form.get("heroCredit")) : null;
 
-    if (!title) {
-      return NextResponse.json({ error: "Title is required." }, { status: 400 });
-    }
+    const tagsJson = form.get("tags") as string | null;         // '["PM2.5","สิ่งแวดล้อม"]'
+    const attachmentsJson = form.get("attachments") as string | null; // '[{label,url}]'
 
-    // สร้าง random folder name สำหรับข่าวนี้
+    if (!title.trim()) return NextResponse.json({ error: "title required" }, { status: 400 });
+    if (!description.trim()) return NextResponse.json({ error: "description required" }, { status: 400 });
+
+    // สร้าง slug + โฟลเดอร์
+    const slug = makeSlugFromTitle(title);
     const newsFolder = uuidv4();
 
-    // ตรวจสอบว่า title เป็นภาษาไทยหรือไม่ เพื่อสร้าง slug
-    const isThai = /[\u0E00-\u0E7F]/.test(title);
-    const slug = isThai
-      ? `${title.replace(/\s+/g, "-")}-${uuidv4().slice(0, 8)}`
-      : slugify(title, { lower: true, strict: true });
-
-    // ประมวลผล htmlContent: แปลง embedded <img> ที่มี src เป็น Base64 ให้เป็น URL
-    // บันทึกไฟล์รูปใน content ลงใน subfolder "content" ภายใน newsFolder
-    let finalHtml = htmlContent;
-    if (htmlContent) {
-          const dom = new JSDOM(htmlContent);
-          const document = dom.window.document;
-          const imgElements = document.querySelectorAll("img");
-          for (const img of Array.from(imgElements)) {
-            const src = img.getAttribute("src");
-            if (src && src.startsWith("data:")) {
-              // แยก base64 data
-              const base64Data = src.split(",")[1];
-              // ระบุ mime type เพื่อตั้งค่า extension
-              const mimeMatch = src.match(/^data:(.*?);base64,/);
-              let ext = "png"; // ค่า default
-              if (mimeMatch && mimeMatch[1]) {
-                const mime = mimeMatch[1];
-                if (mime === "image/jpeg") ext = "jpg";
-                else if (mime === "image/png") ext = "png";
-                else if (mime === "image/gif") ext = "gif";
-              }
-              // สร้างชื่อไฟล์ใหม่สำหรับรูปใน description
-              const filename = `${Date.now()}-${uuidv4()}.${ext}`;
-              const buffer = Buffer.from(base64Data, "base64");
-              // บันทึกไฟล์ในโฟลเดอร์ activityFolder/content
-              const imageUrl = await saveFileBuffer(buffer, `${newsFolder}/content`, filename);
-              // แทนที่ src ด้วย URL ที่แท้จริง
-              img.setAttribute("src", `/api/uploads${imageUrl}`);
-            }
-          }
-          finalHtml = document.body.innerHTML;
+    // จัดการ embedded images (base64) ใน contentHtml
+    if (contentHtml) {
+      const dom = new JSDOM(contentHtml);
+      const document = dom.window.document;
+      const imgs = Array.from(document.querySelectorAll("img"));
+      for (const img of imgs) {
+        const src = img.getAttribute("src") || "";
+        if (src.startsWith("data:")) {
+          const [meta, b64] = src.split(",");
+          const mime = meta.match(/^data:(.*?);base64$/)?.[1] || "image/png";
+          const ext = mime === "image/jpeg" ? "jpg" : mime === "image/gif" ? "gif" : "png";
+          const filename = `${Date.now()}-${uuidv4()}.${ext}`;
+          const buf = Buffer.from(b64, "base64");
+          const url = await saveBufferUnder(buf, ["news", newsFolder, "content"], filename);
+          img.setAttribute("src", `/api/uploads${url}`);
         }
-
-    // บันทึก cover image หากมี ลงใน newsFolder/cover
-    let coverImageUrl = "";
-    if (coverImageFile) {
-      const filename = `${Date.now()}-${coverImageFile.name}`;
-      const buffer = Buffer.from(await coverImageFile.arrayBuffer());
-      coverImageUrl = await saveFileBuffer(buffer, `${newsFolder}/cover`, filename);
+      }
+      contentHtml = document.body.innerHTML;
     }
 
-    // บันทึกข่าวในฐานข้อมูล
-    const newNews = await prisma.news.create({
+    // ปก
+    let coverUrl: string | null = null;
+    if (coverImage && coverImage.size > 0) {
+      const filename = `${Date.now()}-${coverImage.name}`;
+      const buf = Buffer.from(await coverImage.arrayBuffer());
+      coverUrl = await saveBufferUnder(buf, ["news", newsFolder, "cover"], filename);
+    }
+
+    // สแนปช็อตผู้เขียน
+    const author = await prisma.user.findUnique({ where: { id: authorId } });
+    const authorSnapshot = author
+      ? {
+        name: `${author.firstname} ${author.lastname}`,
+        email: author.email,
+        department: author.department,
+        avatar: author.avatar,
+      }
+      : undefined;
+
+    // tags & attachments
+    const tagNames: string[] = tagsJson ? JSON.parse(tagsJson) : [];
+    const attachments = attachmentsJson ? JSON.parse(attachmentsJson) : undefined;
+
+    const created = await prisma.news.create({
       data: {
         title,
         slug,
         description,
-        content: finalHtml ? finalHtml : undefined,
-        authorId: authorIdStr ? Number(authorIdStr) : null,
-        image: coverImageUrl,
+        contentHtml: contentHtml || null,
+        authorId,
+        authorSnapshot,
+        image: coverUrl,
+        heroCredit,
+        status: "PUBLISHED",     // หรือรับมาจากฟอร์ม
+        publishedAt: new Date(), // หรือรับมาจากฟอร์ม
+        attachments,
+        tags: await connectOrCreateTags(tagNames),
+      },
+      include: {
+        tags: true,
       },
     });
 
-    return NextResponse.json({ success: true, news: newNews }, { status: 201 });
-  } catch (error) {
-    console.log(error);
-    return NextResponse.json(
-      { error: "Something went wrong", message: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
-    );
+    return NextResponse.json({ item: created }, { status: 201 });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
