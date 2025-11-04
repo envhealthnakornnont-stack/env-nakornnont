@@ -13,6 +13,7 @@ export const pageTitles: Record<string, string> = {
     "users/create": "สร้างบัญชีผู้ใช้ใหม่",
     "users/edit": "แก้ไขบัญชีผู้ใช้งาน",
     "setting": "ตั้งค่า",
+    "search": "ค้นหา"
 };
 
 

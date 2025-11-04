@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
 import AdminShell from "@/components/Sidebar/AdminShell";
+import { Role } from "@/components/Sidebar/types";
 
 export const metadata = {
     title: "แดชบอร์ดผู้ดูแลระบบ | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
@@ -45,7 +46,7 @@ export default async function AdminLayout({
                 id: String(user.id),
                 name: `${user.firstname} ${user.lastname}`.trim(),
                 email: user.email ?? undefined,
-                role: user.role ?? "USER",
+                role: (user.role as Role) ?? 'USER',
                 avatar: user.avatar ?? undefined,
             }}
         >

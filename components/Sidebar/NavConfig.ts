@@ -1,28 +1,15 @@
 import type { LucideIcon } from "lucide-react";
-import {
-    LayoutDashboard,
-    Images,
-    FileText,
-    CalendarDays,
-    Building2,
-    Users,
-    Cpu,
-    Settings,
-} from "lucide-react";
-
-
-export type Role = "SUPERUSER" | "ADMIN" | "STAFF" | "USER";
-
+import { LayoutDashboard, Images, FileText, CalendarDays, Building2, Users, Cpu, Settings, } from "lucide-react";
+import { Role } from "@/components/Sidebar/types";
 
 export type NavItem = {
     title: string;
     href?: string;
     icon?: LucideIcon;
-    roles?: Role[]; // ไม่ใส่ = ทุก role
+    roles?: Role[];
     children?: NavItem[];
     badge?: string;
 };
-
 
 export const NAV_SECTIONS: NavItem[] = [
     {

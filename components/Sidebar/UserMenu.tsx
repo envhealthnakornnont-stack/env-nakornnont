@@ -1,18 +1,9 @@
 "use client";
 
-import * as React from "react";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { LogOut, User2 } from "lucide-react";
-import type { AdminUser } from "./AdminShell";
+import type { AdminUser } from "@/components/Sidebar/types";
 
 export default function UserMenu({ user }: { user: AdminUser }) {
     return (
