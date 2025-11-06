@@ -3,10 +3,11 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { authorName, resolveImagePath, toPlainText, truncate } from "./utils";
+import { Newsish } from "./types";
 
 export default function NewsCard({
   item, type, href,
-}: { item: any; type: "news" | "activities"; href: string }) {
+}: { item: Newsish; type: "news" | "activities"; href: string }) {
   return (
     <Card className="group overflow-hidden border-muted/60 hover:border-foreground/30 transition-colors">
       <Link href={href} aria-label={item.title} className="block h-full">

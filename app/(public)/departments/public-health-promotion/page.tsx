@@ -1,4 +1,4 @@
-import PublicHealthPromotionSection from "@/features/users/components/Departments/PublicHealthPromotionSection";
+// import PublicHealthPromotionSection from "@/features/users/components/Departments/PublicHealthPromotionSection";
 import type { Metadata } from "next";
 import DepartmentView from "@/components/Departments/DepartmentView";
 import { departments } from "@/components/Departments/utils";

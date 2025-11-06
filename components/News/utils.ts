@@ -8,15 +8,19 @@ export function resolveImagePath(img?: string | null) {
   return img;
 }
 
+// Quill Delta (แบบเบา ๆ พอให้ type-safe)
+type QuillOp = { insert?: string | Record<string, unknown> } & Record<string, unknown>;
+type QuillDelta = { ops?: QuillOp[] } | null | undefined;
+
 export function toPlainText(input: unknown): string {
   if (typeof input === "string") {
     return input.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
   }
   try {
-    const obj: any = input;
+    const obj = input as QuillDelta;
     if (obj?.ops && Array.isArray(obj.ops)) {
       return obj.ops
-        .map((op: any) => (typeof op.insert === "string" ? op.insert : ""))
+        .map((op) => (typeof op.insert === "string" ? op.insert : ""))
         .join("")
         .trim();
     }

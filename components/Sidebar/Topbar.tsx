@@ -40,7 +40,6 @@ export default function Topbar({ user }: { user: AdminUser }) {
     useEffect(() => {
         const urlQ = searchParams.get('q') ?? '';
         setQ(urlQ);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams]);
 
     // live replace เมื่อพิมพ์ (หลัง debounce และไม่ composing)

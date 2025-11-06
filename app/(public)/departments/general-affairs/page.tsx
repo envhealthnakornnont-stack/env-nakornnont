@@ -1,6 +1,6 @@
 import DepartmentView from "@/components/Departments/DepartmentView";
 import { departments } from "@/components/Departments/utils";
-import GeneralAffairsSection from "@/features/users/components/Departments/GeneralAffairsSection";
+// import GeneralAffairsSection from "@/features/users/components/Departments/GeneralAffairsSection";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

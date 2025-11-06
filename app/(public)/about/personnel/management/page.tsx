@@ -1,5 +1,5 @@
 import PersonSection from "@/components/Personnel/PersonSection";
-import ManagementSection from "@/features/users/components/Management/ManagementSection";
+// import ManagementSection from "@/features/users/components/Management/ManagementSection";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

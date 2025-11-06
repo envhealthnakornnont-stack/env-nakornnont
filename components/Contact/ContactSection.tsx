@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import ContactForm from "./ContactForm";          // Client
+import ContactForm from "@/components/Contact/ContactForm";          // Client
 import ContactCard from "./ContactCard";          // Server
 import type { ContactPoint } from "./types";
 

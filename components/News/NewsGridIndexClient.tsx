@@ -59,11 +59,10 @@ export default function NewsGridIndexClient({
 
     // sync จาก server props เมื่อเปลี่ยนหน้า/พารามิเตอร์ (กัน state ค้าง)
     useEffect(() => {
-        if (isServerDriven) {
-            if (serverPage && serverPage !== page) setPage(serverPage);
-            if (serverPageSize && serverPageSize !== perPage) setPerPage(serverPageSize);
-        }
-    }, [isServerDriven, serverPage, serverPageSize]);
+        if (!isServerDriven) return;
+        if (serverPage && serverPage !== page) setPage(serverPage);
+        if (serverPageSize && serverPageSize !== perPage) setPerPage(serverPageSize);
+    }, [isServerDriven, serverPage, serverPageSize, page, perPage]);
 
     // 1) debounce คีย์เวิร์ดก่อนอัปเดต URL → ลด API call ตอนพิมพ์
     const dq = useDebounced(q, 350);
@@ -71,10 +70,12 @@ export default function NewsGridIndexClient({
     // 2) ป้องกัน replace ซ้ำซ้อน: cache last URL ที่ apply แล้ว
     const lastApplied = useRef<string>("");
 
+    // snapshot ของค่า search params ปัจจุบัน (เป็น array primitive)
+    const spEntries = useMemo(() => Array.from(sp.entries()), [sp]);
+
     useEffect(() => {
-        // สร้างพารามิเตอร์จากค่าปัจจุบัน
-        const params = new URLSearchParams(Array.from(sp.entries()));
-        dq ? params.set("q", dq) : params.delete("q");
+        const params = new URLSearchParams(); // เรา “เป็นเจ้าของความจริง” ไม่ต้องอิง sp เดิม
+        if (dq) params.set("q", dq);
         params.set("sort", sort);
         params.set("perPage", String(perPage));
         params.set("page", String(page));
@@ -84,40 +85,43 @@ export default function NewsGridIndexClient({
             lastApplied.current = nextUrl;
             router.replace(nextUrl);
         }
-    }, [dq, sort, perPage, page]);
+        // รวม deps: ปลอดภัย + ไม่ลูป
+    }, [dq, sort, perPage, page, basePath, router, spEntries]);
 
-    // คำนวณชุดแสดงผล
-    let total = 0, totalPages = 1, currentPage = 1, start = 0, view = items;
+    // เตรียมข้อมูลแสดงผล
+    const filteredClient = useMemo(() => {
+        // คิดไว้ “เสมอ” เพื่อเลี่ยงการเรียก hook แบบมีเงื่อนไข
+        const term = dq.trim().toLowerCase();
+        let arr = [...items];
+        if (term) {
+            arr = arr.filter((it) => {
+                const text = `${it.title} ${toPlainText(it.description ?? it.content ?? "")} ${authorName(it)}`.toLowerCase();
+                return text.includes(term);
+            });
+        }
+        arr.sort((a, b) => {
+            const ad = a.createdAtISO ? new Date(a.createdAtISO).getTime() : 0;
+            const bd = b.createdAtISO ? new Date(b.createdAtISO).getTime() : 0;
+            return sort === "new" ? bd - ad : ad - bd;
+        });
+        return arr;
+    }, [items, dq, sort]);
+
+    // สร้าง view ตามโหมด
+    let total = 0, totalPages = 1, currentPage = 1, start = 0, view: Newsish[] = items;
 
     if (isServerDriven) {
         total = serverTotal!;
         totalPages = Math.max(1, Math.ceil(serverTotal! / perPage));
         currentPage = Math.min(Math.max(1, serverPage!), totalPages);
         start = (currentPage - 1) * perPage;
-        view = items; // API ส่งหน้าที่ slice มาแล้ว
+        view = items; // API ส่งมาเป็นหน้านี้แล้ว
     } else {
-        const filtered = useMemo(() => {
-            const term = dq.trim().toLowerCase(); // ใช้ dq ให้ UI สอดคล้องกับ URL
-            let arr = [...items];
-            if (term) {
-                arr = arr.filter((it) => {
-                    const text = `${it.title} ${toPlainText(it.description ?? it.content ?? "")} ${authorName(it)}`.toLowerCase();
-                    return text.includes(term);
-                });
-            }
-            arr.sort((a, b) => {
-                const ad = a.createdAtISO ? new Date(a.createdAtISO).getTime() : 0;
-                const bd = b.createdAtISO ? new Date(b.createdAtISO).getTime() : 0;
-                return sort === "new" ? bd - ad : ad - bd;
-            });
-            return arr;
-        }, [items, dq, sort]);
-
-        total = filtered.length;
+        total = filteredClient.length;
         totalPages = Math.max(1, Math.ceil(total / perPage));
         currentPage = Math.min(page, totalPages);
         start = (currentPage - 1) * perPage;
-        view = filtered.slice(start, start + perPage);
+        view = filteredClient.slice(start, start + perPage);
     }
 
     return (

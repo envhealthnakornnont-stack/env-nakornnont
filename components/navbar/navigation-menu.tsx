@@ -12,7 +12,7 @@ import {
     NavigationMenuTrigger,
     navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
-import { Megaphone, Newspaper, Users2, Building2, BadgeCheck } from "lucide-react"
+import { Megaphone, Newspaper, Building2, BadgeCheck } from "lucide-react"
 import { RetroGrid } from "@/components/ui/retro-grid"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
@@ -121,7 +121,7 @@ function BrandCard() {
 }
 
 export function NavigationMenuNakornnont() {
-    const isActive = useIsActive()
+    // const isActive = useIsActive()
 
     return (
         <NavigationMenu viewport={false}>

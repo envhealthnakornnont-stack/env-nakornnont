@@ -182,7 +182,7 @@ export default function StructureView() {
                                 </CardHeader>
                                 <CardContent className="text-sm text-muted-foreground space-y-2">
                                     <p className="flex items-start gap-2"><Info className="mt-0.5 h-4 w-4" /> การปรับปรุงหน่วยงานอาจมีการเปลี่ยนแปลงตามคำสั่งล่าสุด</p>
-                                    <p className="flex items-start gap-2"><Info className="mt-0.5 h-4 w-4" /> ช่องทางติดต่ออย่างเป็นทางการระบุในหน้า "ติดต่อเรา"</p>
+                                    <p className="flex items-start gap-2"><Info className="mt-0.5 h-4 w-4" /> ช่องทางติดต่ออย่างเป็นทางการระบุในหน้า &quot;ติดต่อเรา&quot;</p>
                                 </CardContent>
                             </Card>
                         </div>

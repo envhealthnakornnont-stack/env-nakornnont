@@ -1,8 +1,8 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/authOptions";
-import ImageLogin from "@/features/admin/components/Login/ImageLogin";
-import FormLogin from "@/features/admin/components/Login/FormLogin";
+// import ImageLogin from "@/features/admin/components/Login/ImageLogin";
+// import FormLogin from "@/features/admin/components/Login/FormLogin";
 import LoginForm from "@/components/Login/LoginForm";
 import LoginAside from "@/components/Login/LoginAside";
 

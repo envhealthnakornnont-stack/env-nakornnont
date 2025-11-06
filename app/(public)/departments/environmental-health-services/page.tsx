@@ -1,6 +1,6 @@
 import DepartmentView from "@/components/Departments/DepartmentView";
 import { departments } from "@/components/Departments/utils";
-import EnvironmentalHealthServicesSection from "@/features/users/components/Departments/EnvironmentalHealthServicesSection";
+// import EnvironmentalHealthServicesSection from "@/features/users/components/Departments/EnvironmentalHealthServicesSection";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

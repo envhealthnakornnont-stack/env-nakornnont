@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/authOptions";
 import { v4 as uuidv4 } from "uuid";
 import { JSDOM } from "jsdom";
 import path from "path";
-import fs from "fs";
+// import fs from "fs";
 import { saveBufferUnder, toRealPath, rmFileIfExists } from "@/lib/uploads";
 import { connectOrCreateTags } from "@/lib/tags";
 

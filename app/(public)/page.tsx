@@ -7,8 +7,8 @@ import BentoPresetA from "@/components/News/BentoPresetA";
 import NewsGrid from "@/components/News/NewsGrid";
 import TikTokMarquee from "@/components/TikTokMarquee/TikTokMarquee";
 import CarouselHeroShadcn from "@/features/users/components/Carousel/CarouselHeroShadcn";
-import Hero from "@/features/users/components/Hero/Hero";
-import { NewsItems, ActivitiesItems, BannerImage, CarouselImage } from "@/types/publicTypes";
+// import Hero from "@/features/users/components/Hero/Hero";
+import { BannerImage, CarouselImage } from "@/types/publicTypes";
 import { CalendarDays, Megaphone, Newspaper, PanelsTopLeft, PartyPopper } from "lucide-react";
 import { Newsish } from "@/components/News/types";
 
@@ -22,20 +22,20 @@ const fetchNews = async (): Promise<Newsish[]> => {
     const res = await fetch(`${baseURL}/api/news`, { next: { revalidate: 30 } });
     const payload = await res.json();
     const news = (payload.items ?? []).map((it: any) => ({
-        id: it.id,
-        title: it.title,
-        slug: it.slug,
-        description: it.description ?? "ไม่มีคำอธิบาย",
-        content: it.contentHtml ?? null,
-        image: it.image,
-        author: {
-          firstname: it.author?.firstname ?? "",
-          lastname: it.author?.lastname ?? "",
-          department: it.author?.department ?? "",
-        },
-        createdAt: formatDateToThai(it.createdAt),
-        createdAtISO: it.createdAt,
-      })) as Newsish[];
+      id: it.id,
+      title: it.title,
+      slug: it.slug,
+      description: it.description ?? "ไม่มีคำอธิบาย",
+      content: it.contentHtml ?? null,
+      image: it.image,
+      author: {
+        firstname: it.author?.firstname ?? "",
+        lastname: it.author?.lastname ?? "",
+        department: it.author?.department ?? "",
+      },
+      createdAt: formatDateToThai(it.createdAt),
+      createdAtISO: it.createdAt,
+    })) as Newsish[];
     // const data = await res.json();
     // const activities = data.map((item: NewsItems) => ({
     //   id: item.id,
@@ -69,20 +69,20 @@ const fetchActivities = async (): Promise<Newsish[]> => {
     });
     const payload = await res.json();
     const activities = (payload.items ?? []).map((it: any) => ({
-        id: it.id,
-        title: it.title,
-        slug: it.slug,
-        description: it.description ?? "ไม่มีคำอธิบาย",
-        content: it.contentHtml ?? null,
-        image: it.image,
-        author: {
-          firstname: it.author?.firstname ?? "",
-          lastname: it.author?.lastname ?? "",
-          department: it.author?.department ?? "",
-        },
-        createdAt: formatDateToThai(it.createdAt),
-        createdAtISO: it.createdAt,
-      })) as Newsish[];
+      id: it.id,
+      title: it.title,
+      slug: it.slug,
+      description: it.description ?? "ไม่มีคำอธิบาย",
+      content: it.contentHtml ?? null,
+      image: it.image,
+      author: {
+        firstname: it.author?.firstname ?? "",
+        lastname: it.author?.lastname ?? "",
+        department: it.author?.department ?? "",
+      },
+      createdAt: formatDateToThai(it.createdAt),
+      createdAtISO: it.createdAt,
+    })) as Newsish[];
     // const data = await res.json();
     // const activities = data.map((item: ActivitiesItems) => ({
     //   id: item.id,
@@ -171,7 +171,7 @@ async function getFeatured(): Promise<CarouselImage[]> {
 }
 
 const page = async () => {
-  const hero = await fetcHero();
+  // const hero = await fetcHero();
   const service = await fetchService();
   const newsData = await fetchNews();
   const activitiesData = await fetchActivities();

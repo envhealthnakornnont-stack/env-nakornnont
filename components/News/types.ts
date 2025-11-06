@@ -4,7 +4,7 @@ export type Newsish = {
     slug: string;
     image?: string | null;
     description?: string | null;
-    content?: any; // Quill Delta หรือ HTML string
+    content?: string; // Quill Delta หรือ HTML string
     author?: { firstname?: string; lastname?: string; department?: string };
     createdAt: string;      // for display (th-TH)
     createdAtISO?: string;  // for client-side sort (fallback)

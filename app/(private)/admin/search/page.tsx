@@ -7,7 +7,7 @@ type Props = { searchParams: { q?: string } };
 
 export default async function AdminSearchPage({ searchParams }: Props) {
     const q = (searchParams.q ?? '').trim();
-    const like = q ? `%${q}%` : null;
+    // const like = q ? `%${q}%` : null;
 
     // ป้องกันยิง DB เวลา q ว่าง
     const [news, activities, personnel, eServices] = q
