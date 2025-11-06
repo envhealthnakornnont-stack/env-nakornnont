@@ -24,7 +24,7 @@ export default function QuickActionsDock({
     <nav
       id={id}
       aria-label={title}
-      className={cn("mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12", className)}
+      className={cn("mx-auto max-w-screen-xl px-4 sm:px-6 py-8 sm:py-12", className)}
     >
       {title && (
         <h2 className="mb-2 text-2xl sm:text-3xl font-bold tracking-tight">

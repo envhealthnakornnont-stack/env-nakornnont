@@ -21,6 +21,9 @@ export default function NewsGrid(props: NewsGridProps) {
     defaultPerPage = 12,
     className,
     breadcrumbs,
+    serverTotal,
+    serverPage,
+    serverPageSize
   } = props;
 
   // โหมดหน้าแรก: SSR ล้วน ไม่มี "use client"
@@ -66,6 +69,9 @@ export default function NewsGrid(props: NewsGridProps) {
       defaultPerPage={defaultPerPage}
       className={className}
       breadcrumbs={breadcrumbs}
+      serverTotal={serverTotal}
+      serverPage={serverPage}
+      serverPageSize={serverPageSize}
     />
   );
 }

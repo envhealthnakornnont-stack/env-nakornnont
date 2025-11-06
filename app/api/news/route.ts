@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
+import { PublishStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,16 +13,23 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const q = (url.searchParams.get("q") || "").trim();
     const tag = (url.searchParams.get("tag") || "").trim();
-    const statusParam = (url.searchParams.get("status") || "").toUpperCase(); // ← เปล่าเป็นดีฟอลต์
+
+    const statusStr = (url.searchParams.get("status") || "").trim().toUpperCase();
+    const statusParam: PublishStatus | undefined =
+      statusStr === "DRAFT" ? PublishStatus.DRAFT :
+        statusStr === "PUBLISHED" ? PublishStatus.PUBLISHED :
+          statusStr === "ARCHIVED" ? PublishStatus.ARCHIVED :
+            undefined;
+
     const page = Math.max(1, Number(url.searchParams.get("page") || 1));
     const pageSize = Math.min(50, Math.max(1, Number(url.searchParams.get("pageSize") || 12)));
-    const sort = url.searchParams.get("sort") || "latest"; // latest|oldest|published
+    const sortParam = (url.searchParams.get("sort") || "latest").toLowerCase(); // latest|oldest|published
 
-    // 1) เงื่อนไขการมองเห็น (visibility)
+    // 1) visibility
     let visibilityWhere: any = {};
     if (!session) {
       visibilityWhere = {
-        status: "PUBLISHED",
+        status: PublishStatus.PUBLISHED,
         publishedAt: { lte: new Date() },
       };
     } else if (role === "SUPERUSER") {
@@ -29,13 +37,13 @@ export async function GET(req: NextRequest) {
     } else {
       visibilityWhere = {
         OR: [
-          { authorId: userId },
-          { status: "PUBLISHED", publishedAt: { lte: new Date() } },
+          { authorId: userId ?? -1 },
+          { status: PublishStatus.PUBLISHED, publishedAt: { lte: new Date() } },
         ],
       };
     }
 
-    // 2) ฟิลเตอร์อื่น ๆ (จะ AND กับ visibility)
+    // 2) filters
     const filters: any[] = [];
 
     if (session && role === "SUPERUSER" && statusParam) {
@@ -49,21 +57,46 @@ export async function GET(req: NextRequest) {
     if (q) {
       filters.push({
         OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
-          { contentHtml: { contains: q, mode: "insensitive" } },
+          { title: { contains: q } },
+          { description: { contains: q } },
+          { slug: { contains: q } },
+          { contentHtml: { contains: q } },
+          {
+            // relation to-one => ใช้ is: { ... }
+            author: {
+              is: {
+                OR: [
+                  { firstname: { contains: q } },
+                  { lastname: { contains: q } },
+                  { department: { contains: q } },
+                ],
+              },
+            },
+          },
+          {
+            tags: {
+              some: {
+                OR: [
+                  { name: { contains: q } },
+                  { slug: { contains: q } },
+                ],
+              },
+            },
+          },
+          // หมายเหตุ: authorSnapshot เป็น JSON — อย่าฟรีเท็กซ์ใน JSON ตรง ๆ
         ],
       });
     }
 
     const where = filters.length ? { AND: [visibilityWhere, ...filters] } : visibilityWhere;
 
+    // 3) orderBy
     const orderBy =
-      sort === "oldest"
-        ? { createdAt: "asc" as const }
-        : sort === "published"
-          ? { publishedAt: "desc" as const }
-          : { createdAt: "desc" as const };
+      sortParam === "oldest"
+        ? [{ createdAt: "asc" as const }]
+        : sortParam === "published"
+          ? [{ publishedAt: "desc" as const }, { createdAt: "desc" as const }] // กัน null
+          : [{ createdAt: "desc" as const }];
 
     const [items, total] = await Promise.all([
       prisma.news.findMany({
@@ -81,6 +114,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ items, total, page, pageSize }, { status: 200 });
   } catch (error) {
+    console.error("[/api/news] error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

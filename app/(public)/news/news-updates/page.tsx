@@ -1,5 +1,14 @@
 import NewsGrid from "@/components/News/NewsGrid";
-import { NewsItems } from "@/types/publicTypes";
+import { Newsish } from "@/components/News/types";
+
+type PageSearchParams = {
+  q?: string;
+  tag?: string;
+  status?: string;
+  sort?: "new" | "old" | "published";
+  page?: string;
+  perPage?: string;
+};
 
 export const metadata = {
   title: "ข่าวประชาสัมพันธ์ | สำนักสาธารณสุขและสิ่งแวดล้อม เทศบาลนครนนทบุรี",
@@ -35,38 +44,6 @@ export const metadata = {
   },
 };
 
-const fetchNews = async () => {
-  const baseURL =
-    process.env.NODE_ENV === "development"
-      ? "http://localhost:3000"
-      : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-
-  try {
-    const res = await fetch(`${baseURL}/api/news`, {
-      next: { revalidate: 30 }
-    });
-    const data = await res.json();
-    const activities = data.map((item: NewsItems) => ({
-      id: item.id,
-      title: item.title,
-      slug: item.slug,
-      description: item.description || "ไม่มีคำอธิบาย",
-      content: item.content || "ไม่มีเนื้อหาข่าวประชาสัมพันธ์",
-      image: item.image,
-      author: {
-        firstname: item.author.firstname,
-        lastname: item.author.lastname,
-        department: item.author.department
-      },
-      createdAt: formatDateToThai(item.createdAt),
-      createdAtISO: item.createdAt
-    }));
-    return activities;
-  } catch (error) {
-    console.log("Error fetching activities:", error);
-    return [];
-  }
-};
 
 const formatDateToThai = (dateString: string): string => {
   const date = new Date(dateString);
@@ -77,12 +54,85 @@ const formatDateToThai = (dateString: string): string => {
   });
 };
 
-const page = async () => {
-  const newsData = await fetchNews();
+export default async function Page({ searchParams, }: { searchParams: Promise<PageSearchParams>; }) {
+  const sp = await searchParams;
+  const {
+    q = "",
+    tag = "",
+    status = "",
+    sort = "new",
+    page = "1",
+    perPage = "12",
+  } = sp || {};
+
+  // map sort UI -> API: latest|oldest|published
+  const apiSort = sort === "old" ? "oldest" : sort === "published" ? "published" : "latest";
+
+  const baseURL =
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:3000"
+      : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+  const params = new URLSearchParams({
+    q,
+    tag,
+    status,
+    sort: apiSort,
+    page: String(page),
+    pageSize: String(perPage),
+  });
+
+  // ใช้ cache แบบ revalidate เล็กน้อยก็ได้ หรือ no-store ถ้าอยากสดทั้งหมด
+  const res = await fetch(`${baseURL}/api/news?${params.toString()}`, {
+    next: { revalidate: 30 },
+    // cache: "no-store",
+  });
+  if (!res.ok) {
+    // fail safe
+    return (
+      <NewsGrid
+        mode="index"
+        type="news"
+        title="ข่าวประชาสัมพันธ์"
+        items={[]}
+        basePath="/news/news-updates"
+        defaultPerPage={Number(perPage)}
+        serverTotal={0}
+        serverPage={Number(page)}
+        serverPageSize={Number(perPage)}
+      />
+    );
+  }
+
+  const payload = await res.json();
+  // payload = { items, total, page, pageSize }
+  const items = (payload.items ?? []).map((it: any) => ({
+    id: it.id,
+    title: it.title,
+    slug: it.slug,
+    description: it.description ?? "ไม่มีคำอธิบาย",
+    content: it.contentHtml ?? null,
+    image: it.image,
+    author: {
+      firstname: it.author?.firstname ?? "",
+      lastname: it.author?.lastname ?? "",
+      department: it.author?.department ?? "",
+    },
+    createdAt: formatDateToThai(it.createdAt),
+    createdAtISO: it.createdAt,
+  })) as Newsish[];
 
   return (
-    <NewsGrid mode="index" type="news" title="ข่าวประชาสัมพันธ์" items={newsData} basePath="/news/news-updates" defaultPerPage={12} />
-  )
+    <NewsGrid
+      mode="index"
+      type="news"
+      title="ข่าวประชาสัมพันธ์"
+      items={items}
+      basePath="/news/news-updates"
+      defaultPerPage={Number(payload.pageSize ?? perPage)}
+      serverTotal={Number(payload.total ?? 0)}
+      serverPage={Number(payload.page ?? page)}
+      serverPageSize={Number(payload.pageSize ?? perPage)}
+    />
+  );
 }
-
-export default page

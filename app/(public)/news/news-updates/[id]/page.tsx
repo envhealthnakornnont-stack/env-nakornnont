@@ -16,7 +16,7 @@ async function fetchNews(id: string): Promise<NewsArticle | null> {
   const res = await fetch(`${baseURL}/api/news/${id}`, { next: { revalidate: 30 } });
   if (!res.ok) return null;
   const payload = await res.json();
-  const apiItem = payload.item ?? payload; // เผื่อบางสภาพแวดล้อมคืน { item } ตามโค้ด API ของคุณ
+  const apiItem = payload.item ?? payload;
   if (!apiItem) return null;
   return adaptApiNewsToArticle(apiItem);
 }

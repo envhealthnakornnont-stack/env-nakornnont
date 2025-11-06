@@ -6,8 +6,8 @@ export type Newsish = {
     description?: string | null;
     content?: any; // Quill Delta หรือ HTML string
     author?: { firstname?: string; lastname?: string; department?: string };
-    createdAt: string;
-    createdAtISO?: string;
+    createdAt: string;      // for display (th-TH)
+    createdAtISO?: string;  // for client-side sort (fallback)
 };
 
 export type Crumb = { label: string; href?: string; current?: boolean };
@@ -40,4 +40,8 @@ export type NewsGridProps = {
 
     /** className เพิ่มเติม */
     className?: string;
+
+    serverTotal?: number;     // จำนวนรายการทั้งหมด จาก API
+    serverPage?: number;      // หน้าปัจจุบัน จาก API
+    serverPageSize?: number;  // จำนวนต่อหน้า จาก API
 };

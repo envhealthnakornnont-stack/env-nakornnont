@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,19 @@ type Props = {
     defaultPerPage?: number;
     className?: string;
     breadcrumbs?: Crumb[];
+    serverTotal?: number;
+    serverPage?: number;
+    serverPageSize?: number;
 };
+
+function useDebounced<T>(value: T, delay = 350) {
+    const [debounced, setDebounced] = useState(value);
+    useEffect(() => {
+        const t = setTimeout(() => setDebounced(value), delay);
+        return () => clearTimeout(t);
+    }, [value, delay]);
+    return debounced;
+}
 
 export default function NewsGridIndexClient({
     title, items, type, basePath, defaultPerPage = 12, className,
@@ -31,48 +43,82 @@ export default function NewsGridIndexClient({
         { label: "หน้าแรก", href: "/" },
         { label: type === "news" ? "ข่าวประชาสัมพันธ์" : "กิจกรรมของสำนัก", current: true },
     ],
+    serverTotal, serverPage, serverPageSize
 }: Props) {
     const router = useRouter();
     const sp = useSearchParams();
 
+    // state
     const [q, setQ] = useState(sp.get("q") ?? "");
     const [sort, setSort] = useState<"new" | "old">(sp.get("sort") === "old" ? "old" : "new");
     const [perPage, setPerPage] = useState<number>(Number(sp.get("perPage")) || defaultPerPage);
     const [page, setPage] = useState<number>(Number(sp.get("page")) || 1);
 
+    // โหมด server-driven?
+    const isServerDriven = typeof serverTotal === "number" && typeof serverPage === "number" && typeof serverPageSize === "number";
+
+    // sync จาก server props เมื่อเปลี่ยนหน้า/พารามิเตอร์ (กัน state ค้าง)
     useEffect(() => {
-        const params = new URLSearchParams(sp);
-        q ? params.set("q", q) : params.delete("q");
+        if (isServerDriven) {
+            if (serverPage && serverPage !== page) setPage(serverPage);
+            if (serverPageSize && serverPageSize !== perPage) setPerPage(serverPageSize);
+        }
+    }, [isServerDriven, serverPage, serverPageSize]);
+
+    // 1) debounce คีย์เวิร์ดก่อนอัปเดต URL → ลด API call ตอนพิมพ์
+    const dq = useDebounced(q, 350);
+
+    // 2) ป้องกัน replace ซ้ำซ้อน: cache last URL ที่ apply แล้ว
+    const lastApplied = useRef<string>("");
+
+    useEffect(() => {
+        // สร้างพารามิเตอร์จากค่าปัจจุบัน
+        const params = new URLSearchParams(Array.from(sp.entries()));
+        dq ? params.set("q", dq) : params.delete("q");
         params.set("sort", sort);
         params.set("perPage", String(perPage));
         params.set("page", String(page));
-        router.replace(`${basePath}?${params.toString()}`);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [q, sort, perPage, page]);
 
-    const filtered = useMemo(() => {
-        const term = q.trim().toLowerCase();
-        let arr = [...items];
-        if (term) {
-            arr = arr.filter((it) => {
-                const text = `${it.title} ${toPlainText(it.description ?? it.content)} ${authorName(it)}`.toLowerCase();
-                return text.includes(term);
-            });
+        const nextUrl = `${basePath}?${params.toString()}`;
+        if (nextUrl !== lastApplied.current) {
+            lastApplied.current = nextUrl;
+            router.replace(nextUrl);
         }
-        arr.sort((a, b) => {
-            const ad = a.createdAtISO ? new Date(a.createdAtISO).getTime() : 0;
-            const bd = b.createdAtISO ? new Date(b.createdAtISO).getTime() : 0;
-            return sort === "new" ? bd - ad : ad - bd;
-        });
-        return arr;
-    }, [items, q, sort]);
+    }, [dq, sort, perPage, page]);
 
-    const total = filtered.length;
-    const totalPages = Math.max(1, Math.ceil(total / perPage));
-    const currentPage = Math.min(page, totalPages);
-    const start = (currentPage - 1) * perPage;
-    const view = filtered.slice(start, start + perPage);
-    const go = (p: number) => setPage(Math.min(Math.max(1, p), totalPages));
+    // คำนวณชุดแสดงผล
+    let total = 0, totalPages = 1, currentPage = 1, start = 0, view = items;
+
+    if (isServerDriven) {
+        total = serverTotal!;
+        totalPages = Math.max(1, Math.ceil(serverTotal! / perPage));
+        currentPage = Math.min(Math.max(1, serverPage!), totalPages);
+        start = (currentPage - 1) * perPage;
+        view = items; // API ส่งหน้าที่ slice มาแล้ว
+    } else {
+        const filtered = useMemo(() => {
+            const term = dq.trim().toLowerCase(); // ใช้ dq ให้ UI สอดคล้องกับ URL
+            let arr = [...items];
+            if (term) {
+                arr = arr.filter((it) => {
+                    const text = `${it.title} ${toPlainText(it.description ?? it.content ?? "")} ${authorName(it)}`.toLowerCase();
+                    return text.includes(term);
+                });
+            }
+            arr.sort((a, b) => {
+                const ad = a.createdAtISO ? new Date(a.createdAtISO).getTime() : 0;
+                const bd = b.createdAtISO ? new Date(b.createdAtISO).getTime() : 0;
+                return sort === "new" ? bd - ad : ad - bd;
+            });
+            return arr;
+        }, [items, dq, sort]);
+
+        total = filtered.length;
+        totalPages = Math.max(1, Math.ceil(total / perPage));
+        currentPage = Math.min(page, totalPages);
+        start = (currentPage - 1) * perPage;
+        view = filtered.slice(start, start + perPage);
+    }
 
     return (
         <section className={cn("mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6", className)}>

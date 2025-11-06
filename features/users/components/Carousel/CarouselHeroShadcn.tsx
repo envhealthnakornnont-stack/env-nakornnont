@@ -136,7 +136,7 @@ export default function CarouselHeroShadcn({ slides, delayMs = 5000 }: Props) {
             <div aria-live="polite" className="sr-only">
                 {`สไลด์ที่ ${current + 1}/${slides.length}: ${slides[current]?.title ?? ""}`}
             </div>
-            <div className="max-w-screen-2xl mx-auto px-4">
+            <div className="max-w-screen-xl mx-auto px-4">
                 <Carousel
                     opts={{ loop: multi, align: "start", duration: 18 }}
                     plugins={shouldAutoplay && autoplayRef.current ? [autoplayRef.current] : []}

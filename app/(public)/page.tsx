@@ -10,40 +10,55 @@ import CarouselHeroShadcn from "@/features/users/components/Carousel/CarouselHer
 import Hero from "@/features/users/components/Hero/Hero";
 import { NewsItems, ActivitiesItems, BannerImage, CarouselImage } from "@/types/publicTypes";
 import { CalendarDays, Megaphone, Newspaper, PanelsTopLeft, PartyPopper } from "lucide-react";
+import { Newsish } from "@/components/News/types";
 
-const fetchNews = async (): Promise<NewsItems[]> => {
+const fetchNews = async (): Promise<Newsish[]> => {
   const baseURL =
     process.env.NODE_ENV === "development"
       ? "http://localhost:3000"
       : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
   try {
-    const res = await fetch(`${baseURL}/api/news`, {
-      next: { revalidate: 30 }, // cache 30 วิ
-    });
-    const data = await res.json();
-    const activities = data.map((item: NewsItems) => ({
-      id: item.id,
-      title: item.title,
-      slug: item.slug,
-      description: item.description || "ไม่มีคำอธิบาย",
-      content: item.content || "ไม่มีเนื้อหาข่าวประชาสัมพันธ์",
-      image: item.image,
-      author: {
-        firstname: item.author.firstname,
-        lastname: item.author.lastname,
-        department: item.author.department
-      },
-      createdAt: formatDateToThai(item.createdAt),
-    }));
-    return activities;
+    const res = await fetch(`${baseURL}/api/news`, { next: { revalidate: 30 } });
+    const payload = await res.json();
+    const news = (payload.items ?? []).map((it: any) => ({
+        id: it.id,
+        title: it.title,
+        slug: it.slug,
+        description: it.description ?? "ไม่มีคำอธิบาย",
+        content: it.contentHtml ?? null,
+        image: it.image,
+        author: {
+          firstname: it.author?.firstname ?? "",
+          lastname: it.author?.lastname ?? "",
+          department: it.author?.department ?? "",
+        },
+        createdAt: formatDateToThai(it.createdAt),
+        createdAtISO: it.createdAt,
+      })) as Newsish[];
+    // const data = await res.json();
+    // const activities = data.map((item: NewsItems) => ({
+    //   id: item.id,
+    //   title: item.title,
+    //   slug: item.slug,
+    //   description: item.description || "ไม่มีคำอธิบาย",
+    //   content: item.content || "ไม่มีเนื้อหาข่าวประชาสัมพันธ์",
+    //   image: item.image,
+    //   author: {
+    //     firstname: item.author.firstname,
+    //     lastname: item.author.lastname,
+    //     department: item.author.department
+    //   },
+    //   createdAt: formatDateToThai(item.createdAt),
+    // }));
+    return news;
   } catch (error) {
     console.log("Error fetching news:", error);
     return [];
   }
 };
 
-const fetchActivities = async (): Promise<ActivitiesItems[]> => {
+const fetchActivities = async (): Promise<Newsish[]> => {
   const baseURL =
     process.env.NODE_ENV === "development"
       ? "http://localhost:3000"
@@ -52,20 +67,36 @@ const fetchActivities = async (): Promise<ActivitiesItems[]> => {
     const res = await fetch(`${baseURL}/api/activities`, {
       next: { revalidate: 30 }, // cache 30 วิ
     });
-    const data = await res.json();
-    const activities = data.map((item: ActivitiesItems) => ({
-      id: item.id,
-      title: item.title,
-      slug: item.slug,
-      image: item.image,
-      description: item.content || "ไม่มีคำอธิบาย",
-      author: {
-        firstname: item.author.firstname,
-        lastname: item.author.lastname,
-        department: item.author.department
-      },
-      createdAt: formatDateToThai(item.createdAt),
-    }));
+    const payload = await res.json();
+    const activities = (payload.items ?? []).map((it: any) => ({
+        id: it.id,
+        title: it.title,
+        slug: it.slug,
+        description: it.description ?? "ไม่มีคำอธิบาย",
+        content: it.contentHtml ?? null,
+        image: it.image,
+        author: {
+          firstname: it.author?.firstname ?? "",
+          lastname: it.author?.lastname ?? "",
+          department: it.author?.department ?? "",
+        },
+        createdAt: formatDateToThai(it.createdAt),
+        createdAtISO: it.createdAt,
+      })) as Newsish[];
+    // const data = await res.json();
+    // const activities = data.map((item: ActivitiesItems) => ({
+    //   id: item.id,
+    //   title: item.title,
+    //   slug: item.slug,
+    //   image: item.image,
+    //   description: item.content || "ไม่มีคำอธิบาย",
+    //   author: {
+    //     firstname: item.author.firstname,
+    //     lastname: item.author.lastname,
+    //     department: item.author.department
+    //   },
+    //   createdAt: formatDateToThai(item.createdAt),
+    // }));
     return activities;
   } catch (error) {
     console.log("Error fetching activities:", error);
