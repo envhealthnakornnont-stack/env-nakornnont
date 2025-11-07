@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { RelatedItem } from "../../related/utils";
+import { RelatedItem } from "@/components/News/Content/shared/related/types";
 
 export default function RelatedGrid({
   items,

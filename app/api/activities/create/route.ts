@@ -4,10 +4,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { v4 as uuidv4 } from "uuid";
 import { JSDOM } from "jsdom";
-
+import { Prisma } from "@prisma/client";
 import { saveBufferUnder } from "@/lib/uploads";
 import { connectOrCreateTags } from "@/lib/tags";
 import { makeSlugFromTitle } from "@/lib/slug";
+
+type GalleryItem = { src: string; alt?: string | null };
+type AttachmentItem = { label: string; url: string };
+type CreatedActivity = Prisma.ActivityGetPayload<{ include: { tags: true } }>;
 
 /** แปลง <img src="data:..."> ใน HTML → อัปโหลดเป็นไฟล์ แล้วแทนที่ src เป็น /api/uploads/... */
 async function materializeBase64Images(html: string, baseFolder: string) {
@@ -104,15 +108,15 @@ export async function POST(req: NextRequest) {
       : undefined;
 
     // parse JSON fields
-    let gallery: any = undefined;
-    if (galleryJson) try { gallery = JSON.parse(galleryJson); } catch { }
-    let attachments: any = undefined;
-    if (attachmentsJson) try { attachments = JSON.parse(attachmentsJson); } catch { }
+    let gallery: GalleryItem[] | undefined = undefined;
+    if (galleryJson) { try { gallery = JSON.parse(galleryJson) as GalleryItem[]; } catch { /* ignore */ } }
+    let attachments: AttachmentItem[] | undefined = undefined;
+    if (attachmentsJson) { try { attachments = JSON.parse(attachmentsJson) as AttachmentItem[]; } catch { /* ignore */ } }
     let tagNames: string[] = [];
-    if (tagsJson) try { tagNames = JSON.parse(tagsJson); } catch { }
+    if (tagsJson) { try { tagNames = JSON.parse(tagsJson) as string[]; } catch { /* ignore */ } }
 
     // พยายามสร้าง record และกัน unique constraint ของ slug แบบ retry เบา ๆ (ไม่ต้องใช้ ensureUniqueSlug)
-    const tryCreate = async (slugAttempt: string) => {
+    const tryCreate = async (slugAttempt: string): Promise<CreatedActivity> => {
       return prisma.activity.create({
         data: {
           title,
@@ -120,35 +124,40 @@ export async function POST(req: NextRequest) {
           contentHtml: contentHtml || null,
           authorId,
           authorSnapshot,
-
           image: coverUrl,
           status,
           eventDate: eventDateStr ? new Date(eventDateStr) : null,
           publishedAt: publishedAtStr ? new Date(publishedAtStr) : new Date(),
-
           location,
           organizer,
           gallery,
           attachments,
-
           tags: await connectOrCreateTags(tagNames),
         },
         include: { tags: true },
       });
     };
 
-    let created = null;
+    let created: CreatedActivity | null = null;
     let slugAttempt = baseSlug;
+
     for (let i = 0; i < 3; i++) {
       try {
         created = await tryCreate(slugAttempt);
         break;
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Prisma P2002 = Unique constraint failed
-        const isUnique = err?.code === "P2002" && Array.isArray(err?.meta?.target) && err.meta.target.includes("slug");
-        if (!isUnique) throw err;
-        // ชน slug → เติม suffix เล็กน้อยแล้วลองใหม่ (ยังคงไม่ใช้ ensureUniqueSlug)
-        slugAttempt = `${baseSlug}-${uuidv4().slice(0, 6)}`;
+        if (
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === "P2002" &&
+          // meta.target อาจเป็น string หรือ string[]
+          ((Array.isArray(err.meta?.target) && err.meta?.target.includes("slug")) ||
+            err.meta?.target === "slug")
+        ) {
+          slugAttempt = `${baseSlug}-${uuidv4().slice(0, 6)}`;
+          continue;
+        }
+        throw err;
       }
     }
     if (!created) {

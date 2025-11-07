@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { PublishStatus } from "@prisma/client";
+import { Prisma, PublishStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   try {
@@ -26,25 +26,19 @@ export async function GET(req: NextRequest) {
     const sortParam = (url.searchParams.get("sort") || "latest").toLowerCase(); // latest|oldest|published
 
     // 1) visibility
-    let visibilityWhere: any = {};
-    if (!session) {
-      visibilityWhere = {
-        status: PublishStatus.PUBLISHED,
-        publishedAt: { lte: new Date() },
-      };
-    } else if (role === "SUPERUSER") {
-      visibilityWhere = {};
-    } else {
-      visibilityWhere = {
-        OR: [
-          { authorId: userId ?? -1 },
-          { status: PublishStatus.PUBLISHED, publishedAt: { lte: new Date() } },
-        ],
-      };
-    }
+    const visibilityWhere: Prisma.NewsWhereInput = !session
+      ? { status: PublishStatus.PUBLISHED, publishedAt: { lte: new Date() } }
+      : role === "SUPERUSER"
+        ? {}
+        : {
+          OR: [
+            { authorId: userId ?? -1 },
+            { status: PublishStatus.PUBLISHED, publishedAt: { lte: new Date() } },
+          ],
+        };
 
     // 2) filters
-    const filters: any[] = [];
+    const filters: Prisma.NewsWhereInput[] = [];
 
     if (session && role === "SUPERUSER" && statusParam) {
       filters.push({ status: statusParam });
@@ -88,7 +82,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const where = filters.length ? { AND: [visibilityWhere, ...filters] } : visibilityWhere;
+    const where: Prisma.NewsWhereInput = filters.length ? { AND: [visibilityWhere, ...filters] } : visibilityWhere;
 
     // 3) orderBy
     const orderBy =

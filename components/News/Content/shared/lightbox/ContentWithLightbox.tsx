@@ -53,7 +53,6 @@ export default function ContentWithLightbox({ html }: { html: string }) {
           prose-hr:my-8
           prose-li:my-1
         "
-                // eslint-disable-next-line react/no-danger
                 dangerouslySetInnerHTML={{ __html: html }}
             />
 

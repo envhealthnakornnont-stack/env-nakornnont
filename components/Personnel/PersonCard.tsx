@@ -120,10 +120,12 @@ export default function PersonCard({ item, highlight = false }: { item: Item; hi
                                                     <a className="underline underline-offset-2" href={`tel:${item.phone}`}>{item.phone}</a>
                                                 </div>
                                             )}
-                                            {(item as any)?.bio && (
+                                            {item.bio && (
                                                 <div className="pt-2">
                                                     <span className="block font-medium">ประวัติย่อ</span>
-                                                    <p className="text-muted-foreground leading-relaxed">{(item as any).bio}</p>
+                                                    <p className="text-muted-foreground leading-relaxed">
+                                                        {item.bio}
+                                                    </p>
                                                 </div>
                                             )}
                                         </div>

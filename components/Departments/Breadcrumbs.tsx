@@ -14,7 +14,7 @@ export default function Breadcrumbs({ trail }: { trail: Trail }) {
                         </BreadcrumbLink>
                     </BreadcrumbItem>
 
-                    {trail.slice(1).map((t, i) => (
+                    {trail.slice(1).map((t) => (
                         <Fragment key={t.href}>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>

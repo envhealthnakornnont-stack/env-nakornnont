@@ -2,9 +2,10 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import NewsArticleModern from "@/components/News/Content/NewsArticle/NewsArticle";
 import type { NewsArticle } from "@/components/News/Content/NewsArticle/types";
-import { adaptApiNewsToArticle, resolveImagePath } from "@/components/News/Content/NewsArticle/apiToArticleAdapter";
+import { adaptApiNewsToArticle  } from "@/components/News/Content/NewsArticle/apiToArticleAdapter";
 import { resolveImage } from "@/components/News/Content/NewsArticle/utils";
 import { fetchRelatedNews } from "@/components/News/Content/shared/related/api";
+import { resolveImagePath } from "@/components/News/utils";
 
 // --- baseURL helper ---
 const baseURL =
@@ -13,7 +14,10 @@ const baseURL =
     : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 async function fetchNews(id: string): Promise<NewsArticle | null> {
-  const res = await fetch(`${baseURL}/api/news/${id}`, { next: { revalidate: 30 } });
+  const res = await fetch(`${baseURL}/api/news/${id}`, { 
+    // next: { revalidate: 30 } 
+    cache: "no-store",
+  });
   if (!res.ok) return null;
   const payload = await res.json();
   const apiItem = payload.item ?? payload;

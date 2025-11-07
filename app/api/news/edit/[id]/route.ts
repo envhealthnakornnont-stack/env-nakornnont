@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { v4 as uuidv4 } from "uuid";
@@ -7,6 +8,8 @@ import { JSDOM } from "jsdom";
 import path from "path";
 import { saveBufferUnder, toRealPath, rmFileIfExists } from "@/lib/uploads";
 import { connectOrCreateTags } from "@/lib/tags";
+
+type AttachmentItem = { label: string; url: string };
 
 /** ดึง src ทั้งหมดของรูปที่เสิร์ฟผ่าน /api/uploads/... จาก HTML */
 function extractApiUploadSrcs(html: string | null | undefined) {
@@ -49,12 +52,12 @@ function inferNewsFolderFromCover(url: string | null | undefined) {
   return "";
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const id = params.id;
+    const { id } = await params;
     const form = await req.formData();
 
     const title = String(form.get("title") || "");
@@ -117,11 +120,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     // parse JSONs
     let tagsArr: string[] = [];
-    if (tagsJson) try { tagsArr = JSON.parse(tagsJson); } catch { }
-    let attachments: any = undefined;
-    if (attachmentsJson) try { attachments = JSON.parse(attachmentsJson); } catch { }
+    if (tagsJson) { try { tagsArr = JSON.parse(tagsJson) as string[]; } catch { } }
+    let attachments: AttachmentItem[] | undefined = undefined;
+    if (attachmentsJson) { try { attachments = JSON.parse(attachmentsJson) as AttachmentItem[]; } catch { } }
 
-    const updateData: any = {
+    const updateData: Prisma.NewsUpdateInput = {
       title,
       description,
       contentHtml: contentHtml || null,
@@ -134,7 +137,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       tags: {
         set: [],
         ...(await connectOrCreateTags(tagsArr)),
-      },
+      } as unknown as Prisma.NewsUpdateInput["tags"],
     };
 
     const item = await prisma.news.update({

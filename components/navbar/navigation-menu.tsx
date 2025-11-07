@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+// import { usePathname } from "next/navigation"
 import {
     NavigationMenu,
     NavigationMenuContent,
@@ -17,10 +17,10 @@ import { RetroGrid } from "@/components/ui/retro-grid"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 
-function useIsActive() {
-    const pathname = usePathname()
-    return (href?: string) => (href ? pathname === href || pathname.startsWith(href) : false)
-}
+// function useIsActive() {
+//     const pathname = usePathname()
+//     return (href?: string) => (href ? pathname === href || pathname.startsWith(href) : false)
+// }
 
 function TileItem({
     title,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { v4 as uuidv4 } from "uuid";
@@ -8,6 +9,9 @@ import path from "path";
 // import fs from "fs";
 import { saveBufferUnder, toRealPath, rmFileIfExists } from "@/lib/uploads";
 import { connectOrCreateTags } from "@/lib/tags";
+
+type GalleryItem = { src: string; alt?: string | null };
+type AttachmentItem = { label: string; url: string };
 
 function extractApiUploadSrcs(html: string | null | undefined) {
   if (!html) return [] as string[];
@@ -28,8 +32,8 @@ async function materializeBase64Images(html: string, baseFolder: string) {
     const mime = meta.match(/^data:(.*?);base64$/)?.[1] || "image/png";
     const ext =
       mime === "image/jpeg" ? "jpg" :
-      mime === "image/gif" ? "gif" :
-      mime === "image/webp" ? "webp" : "png";
+        mime === "image/gif" ? "gif" :
+          mime === "image/webp" ? "webp" : "png";
     const filename = `${Date.now()}-${uuidv4()}.${ext}`;
     const buf = Buffer.from(b64, "base64");
     const url = await saveBufferUnder(buf, ["activities", baseFolder, "content"], filename);
@@ -46,12 +50,12 @@ function inferActivityFolderFromCover(url: string | null | undefined) {
   return "";
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const id = params.id;
+    const { id } = await params;
     const form = await req.formData();
 
     const title = String(form.get("title") || "");
@@ -79,7 +83,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    let actFolder = inferActivityFolderFromCover(existing.image) || uuidv4();
+    const actFolder = inferActivityFolderFromCover(existing.image) || uuidv4();
 
     // cover
     let coverUrl = existing.image || null;
@@ -109,14 +113,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     // parse JSON
-    let gallery: any = undefined;
-    if (galleryJson) try { gallery = JSON.parse(galleryJson); } catch {}
-    let attachments: any = undefined;
-    if (attachmentsJson) try { attachments = JSON.parse(attachmentsJson); } catch {}
+    let gallery: GalleryItem[] | undefined = undefined;
+    if (galleryJson) { try { gallery = JSON.parse(galleryJson) as GalleryItem[]; } catch { } }
+    let attachments: AttachmentItem[] | undefined = undefined;
+    if (attachmentsJson) { try { attachments = JSON.parse(attachmentsJson) as AttachmentItem[]; } catch { } }
     let tagsArr: string[] = [];
-    if (tagsJson) try { tagsArr = JSON.parse(tagsJson); } catch {}
+    if (tagsJson) { try { tagsArr = JSON.parse(tagsJson) as string[]; } catch { } }
 
-    const updateData: any = {
+    const updateData: Prisma.ActivityUpdateInput = {
       title,
       contentHtml: contentHtml || null,
       image: coverUrl,
@@ -130,7 +134,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       tags: {
         set: [],
         ...(await connectOrCreateTags(tagsArr)),
-      },
+      }as unknown as Prisma.ActivityUpdateInput["tags"],
     };
 
     const item = await prisma.activity.update({

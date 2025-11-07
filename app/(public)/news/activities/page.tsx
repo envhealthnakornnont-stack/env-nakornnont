@@ -52,11 +52,29 @@ type PageSearchParams = {
   perPage?: string;
 };
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<PageSearchParams>;
-}) {
+// ---- Types for API payload (no 'any') ----
+type ApiAuthor = {
+  firstname?: string | null;
+  lastname?: string | null;
+  department?: string | null;
+};
+type ApiActivityItem = {
+  id: string;
+  title: string;
+  slug: string;
+  contentHtml?: string | null;
+  image?: string | null;
+  author?: ApiAuthor | null;
+  createdAt: string; // ISO
+};
+type ApiListResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export default async function Page({ searchParams, }: { searchParams: Promise<PageSearchParams>; }) {
   const sp = await searchParams;
   const {
     q = "",
@@ -86,11 +104,11 @@ export default async function Page({
   });
 
   const res = await fetch(`${baseURL}/api/activities?${params.toString()}`, {
-    cache: "no-store", // ให้ซิงก์กับตัวกรอง/ค้นหาแบบเรียลไทม์
+    // next: { revalidate: 30 },
+    cache: "no-store",
   });
 
   if (!res.ok) {
-    // fallback กรณี API ล่ม/ไม่มีผลลัพธ์
     return (
       <NewsGrid
         mode="index"
@@ -106,15 +124,15 @@ export default async function Page({
     );
   }
 
-  const payload = await res.json();
+  const payload = (await res.json()) as ApiListResponse<ApiActivityItem>;
 
-  const items = (payload.items ?? []).map((it: any) => ({
+    const items: Newsish[] = (payload.items ?? []).map((it) => ({
     id: it.id,
     title: it.title,
     slug: it.slug,
     image: it.image ?? null,
-    description: "",                     // กิจกรรมไม่มี description ใน schema
-    content: it.contentHtml ?? null,     // ใช้ contentHtml ตาม schema
+    description: "", // schema กิจกรรมไม่มี description
+    content: it.contentHtml ?? undefined,
     author: {
       firstname: it.author?.firstname ?? "",
       lastname: it.author?.lastname ?? "",
@@ -122,7 +140,7 @@ export default async function Page({
     },
     createdAt: formatDateToThai(it.createdAt),
     createdAtISO: it.createdAt,
-  })) as Newsish[];
+  }));
 
   return (
     <NewsGrid

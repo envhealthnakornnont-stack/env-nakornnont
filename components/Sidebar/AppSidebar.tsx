@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { NAV_SECTIONS, type NavItem } from "@/components/Sidebar/NavConfig";
 import type { AdminUser } from "@/components/Sidebar/types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ChevronDown, LogOut, User2 } from "lucide-react";
+import { ChevronDown, LogOut, type LucideIcon, User2 } from "lucide-react";
 import { Role } from "@/components/Sidebar/types";
 import { cn } from "@/lib/utils";
 
@@ -64,7 +64,7 @@ export default function AppSidebar({ user }: { user: AdminUser }) {
             <SidebarContent>
                 {/* กลุ่มเมนูหลัก */}
                 {NAV_SECTIONS.filter((s) => canView(user.role, s)).map((section, idx) => {
-                    const Icon = section.icon as any;
+                    const Icon = section.icon as LucideIcon;
                     if (section.children?.length) {
                         return (
                             <SidebarGroup key={idx}>

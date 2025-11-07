@@ -11,7 +11,10 @@ const baseURL =
     : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 async function fetchActivityDetail(id: string): Promise<Activity | null> {
-  const res = await fetch(`${baseURL}/api/activities/${id}`, { next: { revalidate: 30 } });
+  const res = await fetch(`${baseURL}/api/activities/${id}`, {
+    // next: { revalidate: 30 }
+    cache: "no-store",
+  });
   if (res.status === 403) redirect("/"); // กันกรณีดูไม่ได้
   if (!res.ok) return null;
   const payload = await res.json();

@@ -2,7 +2,7 @@ import type { OrgUnit } from "@/components/Structure/OrgTree";
 import type { Leader } from "@/components/Structure/LeadershipGrid";
 
 export const leaders: Leader[] = [
-    { id: "1", name: "นพ. สมชาย ใจดี", role: "ผู้อำนวยการ", email: "director@non.go.th", phone: "02-589-0500 ต่อ 1220", photo: "/person1.png" },
+    { id: "1", name: "นพ. สมชาย ใจดี", role: "ผู้อำนวยการ", email: "director@non.go.th", phone: "02-589-0500 ต่อ 1220", photo: "/person_picture.png" },
     { id: "2", name: "นาง สายใจ สุขภาพ", role: "รองผู้อำนวยการ", unit: "งานบริการอนามัยสิ่งแวดล้อม", email: "deputy@non.go.th" },
     { id: "3", name: "นาย ปรีชา รักษ์เมือง", role: "รักษาราชการแทนผู้อำนวยการส่วนบริการอนามัยสิ่งแวดล้อม", unit: "ฝ่ายบริหารทั่วไป", phone: "02-123-0000" },
 ];

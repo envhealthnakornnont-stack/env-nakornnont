@@ -1,27 +1,34 @@
 "use client";
 
-import * as React from "react";
-import { ReactFlow, Controls, Background } from "@xyflow/react";
-import type { Node, Edge } from "@xyflow/react";
+import { ReactFlow, Controls, Background, type Node, type Edge, type NodeTypes } from "@xyflow/react";
 import { orgFlow } from "./types";
 import OrgNode, { CustomLeftNode } from "./CustomNode";
 import "@xyflow/react/dist/style.css";
+import { useEffect, useMemo, useState } from "react";
 
-const nodeTypes = {
+const nodeTypes: NodeTypes = {
     org: OrgNode,
-    CustomLeftNode: CustomLeftNode
-} as any;
+    CustomLeftNode,
+};
 
-export default function StructureDiagram() {
-    const [mounted, setMounted] = React.useState(false);
-    React.useEffect(() => setMounted(true), []);
+export default function StructureDiagram(): React.JSX.Element {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);;
 
-    // Always call hooks before any conditional return to keep order stable
-    const nodes: Node[] = React.useMemo(() => {
-        const base = Array.isArray(orgFlow?.nodes) ? (orgFlow.nodes as Node[]) : [];
-        return base.map((n) => ({ ...n, type: (n as any).type ?? "org" }));
+    const nodes = useMemo<Node[]>(() => {
+        const base = Array.isArray(orgFlow?.nodes)
+            ? (orgFlow.nodes as unknown as Node[])
+            : [];
+        // บังคับ type ของ node เป็น "org" ถ้ายังไม่กำหนดมา
+        return base.map((n) => ({ ...n, type: n.type ?? "org" }));
     }, []);
-    const edges: Edge[] = React.useMemo(() => (Array.isArray(orgFlow?.edges) ? (orgFlow.edges as Edge[]) : []), []);
+
+    const edges = useMemo<Edge[]>(
+        () => (Array.isArray(orgFlow?.edges) ? (orgFlow.edges as unknown as Edge[]) : []),
+        []
+    );
+
+    const defaultEdgeOptions = useMemo(() => ({ type: "step" as const }), []);
 
     return (
         <div className="h-[60vh] rounded-xl border">
@@ -32,13 +39,14 @@ export default function StructureDiagram() {
                     edges={edges}
                     fitView
                     minZoom={0.2}
-                    defaultEdgeOptions={{ type: "step" }}
+                    defaultEdgeOptions={defaultEdgeOptions}
+                    fitViewOptions={{ padding: 0.2 }}
                     panOnDrag
                     zoomOnScroll
                     proOptions={{ hideAttribution: true }}
                 >
                     <Background />
-                    <Controls className="text-slate-800"/>
+                    <Controls position="bottom-right" className="text-slate-800" />
                 </ReactFlow>
             ) : (
                 <div className="p-4 text-sm text-muted-foreground">Loading diagram…</div>

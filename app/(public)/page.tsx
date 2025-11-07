@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import CalendarSection from "@/components/Calendar/CalendarSection";
 import ServiceSection from "@/components/E-Service/ServiceSection";
 import { EServiceItem } from "@/components/E-Service/types";
@@ -8,9 +9,44 @@ import NewsGrid from "@/components/News/NewsGrid";
 import TikTokMarquee from "@/components/TikTokMarquee/TikTokMarquee";
 import CarouselHeroShadcn from "@/features/users/components/Carousel/CarouselHeroShadcn";
 // import Hero from "@/features/users/components/Hero/Hero";
-import { BannerImage, CarouselImage } from "@/types/publicTypes";
+import { CarouselImage } from "@/types/publicTypes";
 import { CalendarDays, Megaphone, Newspaper, PanelsTopLeft, PartyPopper } from "lucide-react";
 import { Newsish } from "@/components/News/types";
+
+// ---- Types for API payload (no 'any') ----
+type ApiAuthor = {
+  firstname?: string | null;
+  lastname?: string | null;
+  department?: string | null;
+};
+type ApiNewsItem = {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string | null;
+  contentHtml?: string | null;
+  image?: string | null;
+  author?: ApiAuthor | null;
+  createdAt: string; // ISO
+};
+type ApiListResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+// ---- Types for API payload (no 'any') ----
+type ApiActivityItem = {
+  id: string;
+  title: string;
+  slug: string;
+  contentHtml?: string | null;
+  image?: string | null;
+  author?: ApiAuthor | null;
+  createdAt: string; // ISO
+};
+
 
 const fetchNews = async (): Promise<Newsish[]> => {
   const baseURL =
@@ -19,14 +55,17 @@ const fetchNews = async (): Promise<Newsish[]> => {
       : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
   try {
-    const res = await fetch(`${baseURL}/api/news`, { next: { revalidate: 30 } });
-    const payload = await res.json();
-    const news = (payload.items ?? []).map((it: any) => ({
+    const res = await fetch(`${baseURL}/api/news`,
+      { cache: "no-store", },
+      // { next: { revalidate: 30 } }
+    );
+    const payload = (await res.json()) as ApiListResponse<ApiNewsItem>;
+    const news: Newsish[] = (payload.items ?? []).map((it) => ({
       id: it.id,
       title: it.title,
       slug: it.slug,
       description: it.description ?? "ไม่มีคำอธิบาย",
-      content: it.contentHtml ?? null,
+      content: it.contentHtml ?? undefined,
       image: it.image,
       author: {
         firstname: it.author?.firstname ?? "",
@@ -35,22 +74,7 @@ const fetchNews = async (): Promise<Newsish[]> => {
       },
       createdAt: formatDateToThai(it.createdAt),
       createdAtISO: it.createdAt,
-    })) as Newsish[];
-    // const data = await res.json();
-    // const activities = data.map((item: NewsItems) => ({
-    //   id: item.id,
-    //   title: item.title,
-    //   slug: item.slug,
-    //   description: item.description || "ไม่มีคำอธิบาย",
-    //   content: item.content || "ไม่มีเนื้อหาข่าวประชาสัมพันธ์",
-    //   image: item.image,
-    //   author: {
-    //     firstname: item.author.firstname,
-    //     lastname: item.author.lastname,
-    //     department: item.author.department
-    //   },
-    //   createdAt: formatDateToThai(item.createdAt),
-    // }));
+    }));
     return news;
   } catch (error) {
     console.log("Error fetching news:", error);
@@ -64,17 +88,18 @@ const fetchActivities = async (): Promise<Newsish[]> => {
       ? "http://localhost:3000"
       : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
   try {
-    const res = await fetch(`${baseURL}/api/activities`, {
-      next: { revalidate: 30 }, // cache 30 วิ
-    });
-    const payload = await res.json();
-    const activities = (payload.items ?? []).map((it: any) => ({
+    const res = await fetch(`${baseURL}/api/activities`,
+      { cache: "no-store", },
+      // { next: { revalidate: 30 }, }
+    );
+    const payload = (await res.json()) as ApiListResponse<ApiActivityItem>;
+    const activities: Newsish[] = (payload.items ?? []).map((it) => ({
       id: it.id,
       title: it.title,
       slug: it.slug,
-      description: it.description ?? "ไม่มีคำอธิบาย",
-      content: it.contentHtml ?? null,
-      image: it.image,
+      image: it.image ?? null,
+      description: "", // schema กิจกรรมไม่มี description
+      content: it.contentHtml ?? undefined,
       author: {
         firstname: it.author?.firstname ?? "",
         lastname: it.author?.lastname ?? "",
@@ -82,21 +107,7 @@ const fetchActivities = async (): Promise<Newsish[]> => {
       },
       createdAt: formatDateToThai(it.createdAt),
       createdAtISO: it.createdAt,
-    })) as Newsish[];
-    // const data = await res.json();
-    // const activities = data.map((item: ActivitiesItems) => ({
-    //   id: item.id,
-    //   title: item.title,
-    //   slug: item.slug,
-    //   image: item.image,
-    //   description: item.content || "ไม่มีคำอธิบาย",
-    //   author: {
-    //     firstname: item.author.firstname,
-    //     lastname: item.author.lastname,
-    //     department: item.author.department
-    //   },
-    //   createdAt: formatDateToThai(item.createdAt),
-    // }));
+    }));
     return activities;
   } catch (error) {
     console.log("Error fetching activities:", error);
@@ -110,9 +121,10 @@ async function fetchService(): Promise<EServiceItem[]> {
     : process.env.NEXT_PUBLIC_API_URL;
 
   try {
-    const res = await fetch(`${baseURL}/api/eservice`, {
-      next: { revalidate: 30 }
-    });
+    const res = await fetch(`${baseURL}/api/eservice`,
+      { cache: "no-store", },
+      // { next: { revalidate: 30 } }
+    );
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
@@ -125,29 +137,29 @@ async function fetchService(): Promise<EServiceItem[]> {
   }
 }
 
-async function fetcHero(): Promise<BannerImage[]> {
-  const baseURL = process.env.NODE_ENV === "development"
-    ? "http://localhost:3000"
-    : process.env.NEXT_PUBLIC_API_URL;
+// async function fetcHero(): Promise<BannerImage[]> {
+//   const baseURL = process.env.NODE_ENV === "development"
+//     ? "http://localhost:3000"
+//     : process.env.NEXT_PUBLIC_API_URL;
 
-  try {
-    const res = await fetch(`${baseURL}/api/banner/image`, {
-      next: {
-        revalidate: 30
-      },
-    });
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    const data = await res.json();
-    const raw: BannerImage[] = data;
-    const activeOnly = raw.filter(item => item.isActive === true);
-    return activeOnly;
-  } catch (error) {
-    console.error("Error fetching Carousel data:", error);
-    return [];
-  }
-}
+//   try {
+//     const res = await fetch(`${baseURL}/api/banner/image`, {
+//       next: {
+//         revalidate: 30
+//       },
+//     });
+//     if (!res.ok) {
+//       throw new Error(`HTTP error! status: ${res.status}`);
+//     }
+//     const data = await res.json();
+//     const raw: BannerImage[] = data;
+//     const activeOnly = raw.filter(item => item.isActive === true);
+//     return activeOnly;
+//   } catch (error) {
+//     console.error("Error fetching Carousel data:", error);
+//     return [];
+//   }
+// }
 
 const formatDateToThai = (dateString: string): string => {
   const date = new Date(dateString);
@@ -161,7 +173,10 @@ const formatDateToThai = (dateString: string): string => {
 async function getFeatured(): Promise<CarouselImage[]> {
   const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
   try {
-    const res = await fetch(`${baseURL}/api/banner/video`, { next: { revalidate: 60 } });
+    const res = await fetch(`${baseURL}/api/banner/video`, { 
+      // next: { revalidate: 60 }
+      cache: "no-store",
+    });
     const data = (await res.json()) as CarouselImage[];
     return data.slice(0, 6);
   } catch (error) {

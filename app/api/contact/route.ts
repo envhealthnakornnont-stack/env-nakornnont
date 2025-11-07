@@ -17,26 +17,29 @@ const FormSchema = z.object({
   website: z.string().max(0).optional().or(z.literal("")), // honeypot
 });
 
+
 /* ---------- 2) Simple rate limit in-memory (per IP) ---------- */
 const RATE_WINDOW_MS = 30_000; // 30 วินาทีต่อ 1 คำขอ
-const ipHits: Map<string, number> = (globalThis as any).__contactIpHits || new Map();
-(globalThis as any).__contactIpHits = ipHits;
+type GlobalWithMail = typeof globalThis & {
+  __contactIpHits?: Map<string, number>;
+  __transporter?: nodemailer.Transporter;
+};
+const g = globalThis as GlobalWithMail;
+
+const ipHits: Map<string, number> = g.__contactIpHits ?? new Map<string, number>();
+g.__contactIpHits = ipHits;
 
 function rateLimited(ip: string) {
-  const last = ipHits.get(ip) || 0;
+  const last = ipHits.get(ip) ?? 0;
   const now = Date.now();
   if (now - last < RATE_WINDOW_MS) return true;
   ipHits.set(ip, now);
   return false;
 }
 
-/* ---------- 3) Nodemailer transporter (singleton) ---------- */
-type G = typeof globalThis & {
-  __transporter?: nodemailer.Transporter;
-};
-const g = globalThis as G;
 
-function getTransporter() {
+/* ---------- 3) Nodemailer transporter (singleton) ---------- */
+function getTransporter(): nodemailer.Transporter {
   if (!g.__transporter) {
     const port = Number(process.env.SMTP_PORT || 465);
     const secure = process.env.SMTP_SECURE
@@ -44,16 +47,16 @@ function getTransporter() {
       : port === 465;
 
     g.__transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,                 // eg. "smtp.gmail.com"
+      host: process.env.SMTP_HOST, // eg. "smtp.gmail.com"
       port,
-      secure,                                      // true = 465, false = 587/25
+      secure, // true = 465, false = 587/25
       auth: {
-        user: process.env.SMTP_USER,               // eg. your@gmail.com
-        pass: process.env.SMTP_PASS,               // App Password / SMTP password
+        user: process.env.SMTP_USER, // eg. your@gmail.com
+        pass: process.env.SMTP_PASS, // App Password / SMTP password
       },
     });
   }
-  return g.__transporter!;
+  return g.__transporter;
 }
 
 /* ---------- 4) Handler ---------- */
@@ -116,21 +119,20 @@ export async function POST(req: Request) {
     const fromAddress =
       process.env.SMTP_FROM || process.env.SMTP_USER || "no-reply@localhost";
 
-    const info = await transporter.sendMail({
-      from: fromAddress,          // ผู้ส่ง
-      to,                         // ผู้รับปลายทาง (หน่วยงาน)
+    await transporter.sendMail({
+      from: fromAddress, // ผู้ส่ง
+      to,                // ผู้รับปลายทาง (หน่วยงาน)
       subject: `[Contact] ${safeSubject}`,
       text,
       html,
-      replyTo: email,             // ให้ตอบกลับไปหาผู้กรอกฟอร์มได้ทันที
+      replyTo: email,    // ให้ตอบกลับไปหาผู้กรอกฟอร์มได้ทันที
     });
 
     // ไม่ log ข้อมูลส่วนตัวลง console ในโปรดักชัน
     // console.log("mail-id", info.messageId);
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    // console.error(err);
+  } catch {
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });
   }
 }

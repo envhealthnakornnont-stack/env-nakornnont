@@ -9,9 +9,10 @@ async function fetchEServices(): Promise<EServiceItem[]> {
       : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
   try {
-    const res = await fetch(`${baseURL}/api/eservice`, {
-      next: { revalidate: 60 },
-    });
+    const res = await fetch(`${baseURL}/api/eservice`,
+      {cache: "no-store",} 
+      // { next: { revalidate: 60 },}
+    );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = (await res.json()) as EServiceItem[];
     // ให้แน่ใจว่าเป็น primitive string

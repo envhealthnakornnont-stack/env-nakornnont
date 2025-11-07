@@ -1,7 +1,15 @@
 import { AlertTriangle, CircleAlert, Info, CheckCircle2 } from "lucide-react";
 import type { Variant, CookieState } from "./types";
+import type { LucideIcon } from "lucide-react";
 
-export const PALETTE: Record<Variant, { icon: any; bg: string; border: string; title: string }> = {
+type PaletteEntry = {
+  icon: LucideIcon; 
+  bg: string;
+  border: string;
+  title: string;
+};
+
+export const PALETTE: Record<Variant, PaletteEntry> = {
     emergency: { icon: AlertTriangle, bg: "bg-red-50 dark:bg-red-900/90", border: "border-red-200 dark:border-red-700", title: "text-red-800 dark:text-red-100" },
     warning: { icon: CircleAlert, bg: "bg-amber-50 dark:bg-amber-900/90", border: "border-amber-200 dark:border-amber-700", title: "text-amber-800 dark:text-amber-100" },
     info: { icon: Info, bg: "bg-sky-50 dark:bg-sky-900/90", border: "border-sky-200 dark:border-sky-700", title: "text-sky-800 dark:text-sky-100" },

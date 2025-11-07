@@ -45,7 +45,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         }
 
         return NextResponse.json({ item }, { status: 200 });
-    } catch (_e) {
+    } catch {
         return NextResponse.json({ error: "Error fetching" }, { status: 500 });
     }
 }

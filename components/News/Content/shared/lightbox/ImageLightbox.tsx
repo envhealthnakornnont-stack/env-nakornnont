@@ -1,12 +1,11 @@
-// features/content/shared/ImageLightbox.tsx
 "use client";
 
-import * as React from "react";
 import Image from "next/image";
 import { X, Plus, Minus, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Props = {
   open: boolean;
@@ -27,24 +26,24 @@ const MAX_VELOCITY = 5000; // เพดานความเร็วกัน�
 
 export default function ImageLightbox({ open, onOpenChange, src, alt, caption }: Props) {
   const ready = Boolean(src);
-  const boxRef = React.useRef<HTMLDivElement | null>(null);
+  const boxRef = useRef<HTMLDivElement | null>(null);
 
-  const [scale, setScale] = React.useState(MIN_SCALE);
-  const [tx, setTx] = React.useState(0);
-  const [ty, setTy] = React.useState(0);
+  const [scale, setScale] = useState(MIN_SCALE);
+  const [tx, setTx] = useState(0);
+  const [ty, setTy] = useState(0);
 
   // สำหรับ pan inertia
-  const dragRef = React.useRef({
+  const dragRef = useRef({
     dragging: false,
     x: 0,
     y: 0,
   });
-  const velRef = React.useRef({ vx: 0, vy: 0, t: 0 }); // px/s
-  const rafRef = React.useRef<number | null>(null);
+  const velRef = useRef({ vx: 0, vy: 0, t: 0 }); // px/s
+  const rafRef = useRef<number | null>(null);
 
   // pinch gesture
-  const lastTapRef = React.useRef(0);
-  const pinchRef = React.useRef({
+  const lastTapRef = useRef(0);
+  const pinchRef = useRef({
     active: false,
     startDist: 0,
     startScale: 1,
@@ -56,7 +55,7 @@ export default function ImageLightbox({ open, onOpenChange, src, alt, caption }:
 
   const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-  const constrainPan = React.useCallback(
+  const constrainPan = useCallback(
     (s: number, x: number, y: number) => {
       // คำนวณขอบเขต pan จากขนาดคอนเทนเนอร์และสเกล (scale ของชั้น transform ทั้งกรอบ)
       const rect = boxRef.current?.getBoundingClientRect();
@@ -73,7 +72,7 @@ export default function ImageLightbox({ open, onOpenChange, src, alt, caption }:
     []
   );
 
-  const reset = React.useCallback(() => {
+  const reset = useCallback(() => {
     setScale(MIN_SCALE);
     setTx(0);
     setTy(0);
@@ -82,7 +81,7 @@ export default function ImageLightbox({ open, onOpenChange, src, alt, caption }:
     rafRef.current = null;
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!open) reset();
   }, [open, reset]);
 
@@ -108,7 +107,7 @@ export default function ImageLightbox({ open, onOpenChange, src, alt, caption }:
   };
 
   // ---------- Zoom controls ----------
-  const zoomIn = () => {
+  const zoomIn = useCallback(() => {
     const rect = boxRef.current?.getBoundingClientRect();
     const newScale = clamp(scale * 1.25, MIN_SCALE, MAX_SCALE);
     const k = newScale / scale;
@@ -120,9 +119,9 @@ export default function ImageLightbox({ open, onOpenChange, src, alt, caption }:
     setScale(newScale);
     setTx(c.x);
     setTy(c.y);
-  };
+  }, [scale, tx, ty, constrainPan]);
 
-  const zoomOut = () => {
+  const zoomOut = useCallback(() => {
     const newScale = clamp(scale / 1.25, MIN_SCALE, MAX_SCALE);
     const c = constrainPan(newScale, tx, ty);
     setScale(newScale);
@@ -131,7 +130,7 @@ export default function ImageLightbox({ open, onOpenChange, src, alt, caption }:
     if (newScale === 1) {
       velRef.current = { vx: 0, vy: 0, t: 0 };
     }
-  };
+  }, [scale, tx, ty, constrainPan]);
 
   const onDoubleClick = () => {
     const target = scale < MID_SCALE ? MID_SCALE : MIN_SCALE;
@@ -143,7 +142,7 @@ export default function ImageLightbox({ open, onOpenChange, src, alt, caption }:
   };
 
   // ---------- Inertia ----------
-  const startInertia = React.useCallback(() => {
+  const startInertia = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
     const step = (t: number) => {
@@ -339,7 +338,7 @@ export default function ImageLightbox({ open, onOpenChange, src, alt, caption }:
   };
 
   // Keyboard shortcuts
-  React.useEffect(() => {
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!open) return;
       if (e.key === "+" || e.key === "=") zoomIn();
@@ -348,7 +347,7 @@ export default function ImageLightbox({ open, onOpenChange, src, alt, caption }:
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, reset]);
+  }, [open, reset, zoomIn, zoomOut]);
 
   const transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
 

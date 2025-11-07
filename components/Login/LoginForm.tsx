@@ -1,40 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Eye, EyeOff, Loader2, Lock, Mail, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import useFormLogin from "@/features/admin/hooks/Login/useFormLogin";
-
-import {
-    Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function LoginForm() {
-    const { formData, errors, setErrors, isSubmitting, handleChange, handleSubmit } = useFormLogin();
+    const { formData, errors, isSubmitting, canSubmit, handleChange, handleSubmit } = useFormLogin();
     const [showPassword, setShowPassword] = useState(false);
 
-    // ยิง toast เมื่อมีข้อความรวมจาก hook
-    useEffect(() => {
-        if (!errors?.general) return;
+    const handleRememberChange = (checked: boolean | "indeterminate") => {
+        const syntheticEvent = {
+            target: {
+                name: "remember",
+                value: String(Boolean(checked)),
+            },
+        } as unknown as React.ChangeEvent<HTMLInputElement>;
+        handleChange(syntheticEvent);
+    };
 
-        // ปรับตามเมสเสจของคุณ
-        const ok = errors.general.includes("สำเร็จ") || /success/i.test(errors.general);
-        if (ok) {
-            toast.success(errors.general || "เข้าสู่ระบบสำเร็จ");
-        } else {
-            toast.error(errors.general || "ไม่สามารถเข้าสู่ระบบได้");
-        }
-
-        // เคลียร์ข้อความรวม เพื่อไม่ให้ยิงซ้ำเวลาฟอร์ม re-render
-        const t = setTimeout(() => {
-            setErrors((prev: any) => ({ ...prev, general: "" }));
-        }, 50);
-        return () => clearTimeout(t);
-    }, [errors?.general, setErrors]);
+    const onSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
+        const { ok, submitted } = await handleSubmit(e);
+        if (!submitted) return;
+        if (ok) toast.success("เข้าสู่ระบบสำเร็จ");
+        else toast.error("เข้าสู่ระบบล้มเหลว");
+    };
 
     return (
         <Card className="shadow-sm">
@@ -49,13 +44,7 @@ export default function LoginForm() {
             </CardHeader>
 
             {/* ใช้ <form> เพื่อรองรับ Enter submit และ a11y */}
-            <form
-                onSubmit={async (e) => {
-                    const ok = await (handleSubmit as any)(e);
-                    if (ok) toast.success("เข้าสู่ระบบสำเร็จ");
-                    else toast.error("เข้าสู่ระบบล้มเหลว");
-                }}
-            >
+            <form onSubmit={onSubmit}>
                 <CardContent className="space-y-4">
                     {/* อีเมล */}
                     <div className="space-y-2">
@@ -106,9 +95,7 @@ export default function LoginForm() {
                                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                             </button>
                         </div>
-                        {errors.password && (
-                            <p id="password-error" className="text-sm text-destructive">{errors.password}</p>
-                        )}
+                        {errors.password && (<p id="password-error" className="text-sm text-destructive">{errors.password}</p>)}
                     </div>
 
                     {/* จำฉันไว้ + ลิงก์ช่วยเหลือ */}
@@ -117,11 +104,7 @@ export default function LoginForm() {
                             <Checkbox
                                 id="remember"
                                 name="remember"
-                                onCheckedChange={(checked) =>
-                                    handleChange({
-                                        target: { name: "remember", value: String(!!checked) },
-                                    } as any)
-                                }
+                                onCheckedChange={handleRememberChange}
                             />
                             <span className="text-sm">จำฉันไว้</span>
                         </label>
@@ -132,7 +115,12 @@ export default function LoginForm() {
                 </CardContent>
 
                 <CardFooter className="flex flex-col gap-4">
-                    <Button className="w-full" type="submit" disabled={isSubmitting}>
+                    <Button
+                        className="w-full"
+                        type="submit"
+                        disabled={!canSubmit}
+                        aria-disabled={!canSubmit}
+                    >
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         เข้าสู่ระบบ
                     </Button>

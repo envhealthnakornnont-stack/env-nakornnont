@@ -3,11 +3,13 @@ import prisma from '@/lib/prisma';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 
-type Props = { searchParams: { q?: string } };
+type SearchParams = Record<string, string | string[] | undefined>;
+type PageProps = { searchParams?: Promise<SearchParams>; };
 
-export default async function AdminSearchPage({ searchParams }: Props) {
-    const q = (searchParams.q ?? '').trim();
-    // const like = q ? `%${q}%` : null;
+export default async function AdminSearchPage({ searchParams }: PageProps) {
+    const params = (await searchParams) ?? {};
+    const raw = params.q;
+    const q = (Array.isArray(raw) ? raw[0] : raw ?? "").trim();
 
     // ป้องกันยิง DB เวลา q ว่าง
     const [news, activities, personnel, eServices] = q
@@ -43,7 +45,7 @@ export default async function AdminSearchPage({ searchParams }: Props) {
                 select: { id: true, title: true },
             }),
         ])
-        : [[], [], [], []];
+        : [[], [], [], []] as const;
 
     const hasAny = [news, activities, personnel, eServices].some((a) => a.length > 0);
 
@@ -51,13 +53,24 @@ export default async function AdminSearchPage({ searchParams }: Props) {
         <div className="mx-auto max-w-screen-xl space-y-8">
             <h1 className="text-2xl font-semibold">ผลการค้นหา{q ? `: “${q}”` : ''}</h1>
 
-            {!q && <p className="text-sm opacity-70">พิมพ์คำค้นในช่องด้านบนแล้วกด Enter</p>}
+            {/* {!q && <p className="text-sm opacity-70">พิมพ์คำค้นในช่องด้านบนแล้วกด Enter</p>}
             {!q && <Button asChild>
                 <Link href={"/admin/dashboard"}>
                     <ChevronLeft />
                     แดชบอร์ด
                 </Link>
-            </Button>}
+            </Button>} */}
+            {!q && (
+                <>
+                    <p className="text-sm opacity-70">พิมพ์คำค้นในช่องด้านบนแล้วกด Enter</p>
+                    <Button asChild>
+                        <Link href="/admin/dashboard">
+                            <ChevronLeft />
+                            แดชบอร์ด
+                        </Link>
+                    </Button>
+                </>
+            )}
             {q && !hasAny && <p className="text-sm opacity-70">ไม่พบผลลัพธ์ที่ตรงกับ “{q}”</p>}
 
             {news.length > 0 && (

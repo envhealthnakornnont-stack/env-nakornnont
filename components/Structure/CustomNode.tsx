@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
-import { Handle, Position } from "@xyflow/react";
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 
-export default function OrgNode({ data }: any) {
+type OrgNodeData = { label: string };
+
+export default function OrgNode({ data }: NodeProps<Node<OrgNodeData, string>>) {
     return (
         <div className="rounded-lg border bg-card px-3 py-2 text-sm shadow-sm">
             <div className="font-medium leading-tight text-card-foreground">{data?.label}</div>
@@ -23,7 +24,7 @@ export default function OrgNode({ data }: any) {
     );
 }
 
-export const CustomLeftNode = ({ data }: any) => {
+export const CustomLeftNode = ({ data }: NodeProps<Node<OrgNodeData, string>>) => {
   return (
     <div className="rounded-lg border bg-card px-3 py-2 text-sm shadow-sm">
       <div className="font-medium leading-tight text-card-foreground">{data.label}</div>

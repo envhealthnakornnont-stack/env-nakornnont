@@ -1,6 +1,7 @@
-import type { RelatedItem, ApiListResponse } from "./types";
-import { adaptNewsToRelated, adaptActivityToRelated } from "../../adapters/apiToRelatedAdapter";
-import { scoreRelated } from "./ranker";
+import type { RelatedItem, ApiListResponse } from "@/components/News/Content/shared/related/types";
+import { adaptNewsToRelated, adaptActivityToRelated } from "@/components/News/Content/adapters/apiToRelatedAdapter";
+import { scoreRelated } from "@/components/News/Content/shared/related/ranker";
+import { ApiActivityItem, ApiNewsItem } from "@/components/News/Content/api-types";
 
 const base =
     process.env.NODE_ENV === "development"
@@ -31,7 +32,7 @@ export async function fetchRelatedNews(
                 { next: { revalidate: 60 } }
             );
             if (!res.ok) return [] as RelatedItem[];
-            const data = (await res.json()) as ApiListResponse<any>;
+            const data = (await res.json()) as ApiListResponse<ApiNewsItem>;
             return (data.items ?? []).map(adaptNewsToRelated);
         })
     );
@@ -57,7 +58,7 @@ export async function fetchRelatedNewsFallback(
         next: { revalidate: 60 },
     });
     if (!res.ok) return [];
-    const data = (await res.json()) as ApiListResponse<any>;
+    const data = (await res.json()) as ApiListResponse<ApiNewsItem>;
     const pool = (data.items ?? []).map(adaptNewsToRelated);
     const ranked = scoreRelated(pool, currentId, currentTags);
     // ถ้ายังว่าง → ส่ง “ล่าสุด” แทน (แต่ตัด current ออก)
@@ -90,7 +91,7 @@ export async function fetchRelatedActivities(
                 { next: { revalidate: 60 } }
             );
             if (!res.ok) return [] as RelatedItem[];
-            const data = (await res.json()) as ApiListResponse<any>;
+            const data = (await res.json()) as ApiListResponse<ApiActivityItem>;
             return (data.items ?? []).map(adaptActivityToRelated);
         })
     );
@@ -114,7 +115,7 @@ export async function fetchRelatedActivitiesFallback(
         next: { revalidate: 60 },
     });
     if (!res.ok) return [];
-    const data = (await res.json()) as ApiListResponse<any>;
+    const data = (await res.json()) as ApiListResponse<ApiActivityItem>;
     const pool = (data.items ?? []).map(adaptActivityToRelated);
     const ranked = scoreRelated(pool, currentId, currentTags);
     if (!ranked.length) {

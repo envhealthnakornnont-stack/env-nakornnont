@@ -17,7 +17,6 @@ export default async function EmergencyBanner(props: BannerProps) {
         compact = false,
         persistStorage = "session",
         ttlMs,
-        onClose,
         ...rest
     } = props;
 

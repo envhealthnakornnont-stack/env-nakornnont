@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 
 export async function connectOrCreateTags(tagNames: string[]) {
     const unique = Array.from(new Set(tagNames.map(t => t.trim()).filter(Boolean)));
-    if (unique.length === 0) return { connect: [] as any[] };
+    if (unique.length === 0) return { connect: [] as { id: string }[] };
 
     // สร้าง slug ง่าย ๆ
     const items = await Promise.all(
